@@ -1,0 +1,16 @@
+{
+  "experimentalServices": {
+    "web": {
+      "entrypoint": "frontend",
+      "routePrefix": "/"
+    },
+    "api": {
+      "entrypoint": "backend/index.py",
+      "routePrefix": "/api",
+      "maxDuration": 300,
+      "includeFiles": [
+        "backend/app/**"
+      ]
+    }
+  }
+}
