@@ -68,8 +68,8 @@ function AnalyzingContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId") || "";
   const [currentStep, setCurrentStep] = useState(0);
-  const [jobStatus, setJobStatus] = useState("queued");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [jobStatus, setJobStatus] = useState(jobId ? "queued" : "failed");
+  const [errorMessage, setErrorMessage] = useState(jobId ? "" : "Missing analysis job. Please upload your photos again.");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -87,8 +87,6 @@ function AnalyzingContent() {
 
   useEffect(() => {
     if (!jobId) {
-      setErrorMessage("Missing analysis job. Please upload your photos again.");
-      setJobStatus("failed");
       return;
     }
 

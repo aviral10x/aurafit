@@ -161,6 +161,24 @@ export default function UploadPage() {
   }
 
   const canSubmit = photos.length >= minPhotosRequired && !isSubmitting && !isAuthWorking;
+  const profileSignals =
+    selectedStyles.length +
+    selectedOccasions.length +
+    selectedGoals.length +
+    (ageRange ? 1 : 0) +
+    (wearType !== "all" ? 1 : 0);
+  const fitSignals = [heightCm, weightKg, shirtSize, bottomSize, shoeSize, preferredFit !== "regular" ? preferredFit : ""].filter(Boolean).length;
+  const readinessScore = Math.min(
+    100,
+    photos.length >= minPhotosRequired ? 34 + Math.min(33, profileSignals * 4) + Math.min(33, fitSignals * 6) : Math.min(30, photos.length * 30)
+  );
+  const nextStepLabel = photos.length < minPhotosRequired
+    ? "Add a clear portrait"
+    : authSession?.session_token
+      ? "Ready to analyze"
+      : "Verify email to unlock AI";
+  const selectedVisualLabel =
+    visualAnalysisOptions.find((option) => option.value === visualAnalysisKind)?.label || "Color Palette";
 
   function optionalNumber(value: string) {
     const parsed = Number(value);
@@ -277,41 +295,77 @@ export default function UploadPage() {
     <>
       <Navbar />
 
-      {/* Main Content */}
-      <main className="flex-grow pt-32 pb-24 px-6 md:px-12 max-w-4xl mx-auto w-full">
+      <main className="flex-grow pt-28 pb-24 px-5 md:px-10 max-w-6xl mx-auto w-full">
         {/* Step Indicator */}
-        <div className="flex justify-between items-center mb-16 px-4">
+        <div className="flex justify-between items-center mb-10 px-1 md:px-4 overflow-x-auto gap-4">
           <div className="flex flex-col items-center gap-2">
             <span className="font-label text-[10px] tracking-[0.2em] uppercase text-primary font-bold">Step 01</span>
-            <span className="font-headline text-lg italic text-on-surface step-active">Upload Photos</span>
+            <span className="font-headline text-base md:text-lg italic text-on-surface step-active whitespace-nowrap">Upload Photos</span>
           </div>
-          <div className="h-[1px] flex-grow mx-8 bg-outline-variant opacity-30"></div>
+          <div className="h-[1px] min-w-10 flex-grow mx-2 md:mx-8 bg-outline-variant opacity-30"></div>
           <div className="flex flex-col items-center gap-2 opacity-40">
             <span className="font-label text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">Step 02</span>
-            <span className="font-headline text-lg italic text-on-surface-variant">Your Preferences</span>
+            <span className="font-headline text-base md:text-lg italic text-on-surface-variant whitespace-nowrap">Your Preferences</span>
           </div>
-          <div className="h-[1px] flex-grow mx-8 bg-outline-variant opacity-30"></div>
+          <div className="h-[1px] min-w-10 flex-grow mx-2 md:mx-8 bg-outline-variant opacity-30"></div>
           <div className="flex flex-col items-center gap-2 opacity-40">
             <span className="font-label text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">Step 03</span>
-            <span className="font-headline text-lg italic text-on-surface-variant">Get Results</span>
+            <span className="font-headline text-base md:text-lg italic text-on-surface-variant whitespace-nowrap">Get Results</span>
           </div>
         </div>
 
         {/* Headline */}
-        <header className="text-center mb-12">
-          <h1 className="font-headline text-5xl md:text-6xl mb-4 tracking-tight">Curate Your <span className="text-primary italic">Aura.</span></h1>
-          <p className="font-body text-on-surface-variant max-w-xl mx-auto leading-relaxed">
-            Our AI stylist analyzes your physical profile and personal taste to curate a bespoke wardrobe that feels uniquely yours.
-          </p>
+        <header className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 lg:gap-10 items-end mb-10">
+          <div>
+            <span className="font-label text-[11px] uppercase tracking-[0.3em] text-primary block mb-4">Private beta analysis</span>
+            <h1 className="font-headline text-5xl md:text-7xl mb-5 tracking-tight leading-[0.95]">
+              Build your <span className="text-primary italic">style brief.</span>
+            </h1>
+            <p className="font-body text-on-surface-variant max-w-2xl leading-relaxed text-base md:text-lg">
+              Upload first, choose what you want analyzed, then verify by email before we spend AI credits. Your result link is saved to your personal ID.
+            </p>
+          </div>
+          <aside className="rounded-3xl border border-outline-variant/30 bg-surface-container-low p-5 editorial-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-label text-[10px] uppercase tracking-widest text-primary">Analysis ticket</span>
+              <span className="rounded-full bg-primary-fixed/50 px-3 py-1 font-label text-[9px] uppercase tracking-widest text-primary">
+                {nextStepLabel}
+              </span>
+            </div>
+            <div className="mb-4">
+              <div className="flex justify-between font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">
+                <span>Readiness</span>
+                <span>{readinessScore}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-container-highest">
+                <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${readinessScore}%` }}></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-surface-container-lowest p-3">
+                <p className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Photos</p>
+                <p className="font-headline text-2xl">{photos.length}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-lowest p-3">
+                <p className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Signals</p>
+                <p className="font-headline text-2xl">{profileSignals}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-lowest p-3">
+                <p className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">Board</p>
+                <p className="font-headline text-lg leading-tight">{selectedVisualLabel}</p>
+              </div>
+            </div>
+          </aside>
         </header>
 
-        <section className="space-y-12">
-          <div className="space-y-6">
+        <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+          <div className="space-y-10">
+          <div className="space-y-5">
             <div className="flex justify-between items-end">
               <div>
-                <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary">00. Prep First</h2>
+                <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary">00. How this stays sane</h2>
                 <p className="font-body text-sm text-on-surface-variant mt-2">
-                  Upload and customize first. We ask for email OTP only when you click Analyze.
+                  Built for Reels traffic: no login wall, no surprise credit spend, and a recoverable result link.
                 </p>
               </div>
               {currentUser && (
@@ -322,36 +376,36 @@ export default function UploadPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
               <div>
-                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Low Friction</span>
-                <p className="font-body text-xs text-on-surface-variant leading-relaxed">No login wall before photo upload.</p>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">1. Upload</span>
+                <p className="font-body text-xs text-on-surface-variant leading-relaxed">Start with one clear portrait; add more for better fit.</p>
               </div>
               <div>
-                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Credit Safe</span>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">2. Verify</span>
                 <p className="font-body text-xs text-on-surface-variant leading-relaxed">
-                  AI starts after OTP · {costPolicy?.analysis_limit_per_user_per_day ?? 3}/day analysis cap
+                  OTP starts the paid analysis · {costPolicy?.analysis_limit_per_user_per_day ?? 3}/day cap
                 </p>
               </div>
               <div>
-                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Recoverable</span>
-                <p className="font-body text-xs text-on-surface-variant leading-relaxed">We email your result link and attach it to your personal ID.</p>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">3. Recover</span>
+                <p className="font-body text-xs text-on-surface-variant leading-relaxed">Your board is attached to your email ID.</p>
               </div>
             </div>
             {costPolicy && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30">
                 <div>
-                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Email OTP</span>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Login</span>
                   <p className="font-body text-xs text-on-surface-variant">
-                    {costPolicy.email_delivery_configured ? "Production email ready" : "Needs SMTP/Resend key"}
+                    {costPolicy.email_delivery_configured ? "Email OTP live" : "Email setup pending"}
                   </p>
                 </div>
                 <div>
-                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Daily Credit Guard</span>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Spend Guard</span>
                   <p className="font-body text-xs text-on-surface-variant">
                     ${Number(costPolicy.max_daily_ai_cost_per_user_usd || 0).toFixed(2)} per verified user
                   </p>
                 </div>
                 <div>
-                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Visual Boards</span>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Premium Board</span>
                   <p className="font-body text-xs text-on-surface-variant">
                     {costPolicy.max_visual_generations_per_user_per_day || 0}/day after save
                   </p>
@@ -829,6 +883,43 @@ export default function UploadPage() {
               </p>
             )}
           </div>
+          </div>
+
+          <aside className="lg:sticky lg:top-28 space-y-4">
+            <div className="rounded-3xl border border-outline-variant/30 bg-surface-container-low p-5 editorial-shadow">
+              <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-4">Your brief</span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-lowest p-4">
+                  <span className="font-body text-sm text-on-surface-variant">Photos</span>
+                  <span className="font-label text-xs uppercase tracking-widest text-on-surface">{photos.length}/10</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-lowest p-4">
+                  <span className="font-body text-sm text-on-surface-variant">Style direction</span>
+                  <span className="font-label text-xs uppercase tracking-widest text-on-surface">{selectedStyles.length || 0} picks</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-lowest p-4">
+                  <span className="font-body text-sm text-on-surface-variant">Fit data</span>
+                  <span className="font-label text-xs uppercase tracking-widest text-on-surface">{fitSignals} signals</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-lowest p-4">
+                  <span className="font-body text-sm text-on-surface-variant">Output</span>
+                  <span className="font-label text-xs uppercase tracking-widest text-on-surface text-right">{selectedVisualLabel}</span>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl bg-primary-fixed/30 p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-primary mb-2">{nextStepLabel}</p>
+                <p className="font-body text-xs leading-relaxed text-on-surface-variant">
+                  The best test is one face-forward portrait, one natural full-body photo, and your real size preferences.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-5">
+              <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-3">Privacy note</span>
+              <p className="font-body text-xs leading-relaxed text-on-surface-variant">
+                We only ask for email when you click analyze, so visitors from Instagram can explore the flow before creating an ID.
+              </p>
+            </div>
+          </aside>
         </section>
       </main>
 

@@ -19,17 +19,17 @@ export default function Home() {
                 Dress like you <span className="italic">mean</span> it.
               </h1>
               <p className="font-body text-xl text-on-surface-variant mb-10 max-w-lg leading-relaxed">
-                Upload your photos. Get your color palette, body type analysis, and 10 outfits picked just for you — in under 30 seconds.
+                Upload your photos, verify once by email, and get a personal style profile with color, fit, and shopping guidance.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 items-start">
                 <Link href="/upload" className="satin-button text-on-primary px-8 py-4 rounded-md font-label uppercase tracking-widest text-sm flex items-center gap-3 hover:opacity-90 transition-all">
                   Get My Style Profile
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
-                <button className="group px-8 py-4 rounded-md font-label uppercase tracking-widest text-sm border border-primary text-primary hover:bg-primary/5 transition-all">
+                <Link href="/#process" className="group px-8 py-4 rounded-md font-label uppercase tracking-widest text-sm border border-primary text-primary hover:bg-primary/5 transition-all">
                   See How It Works
                   <div className="h-[2px] w-0 group-hover:w-full bg-primary transition-all duration-300 mt-1"></div>
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -66,20 +66,20 @@ export default function Home() {
         <section className="py-10 bg-surface-container-low border-y border-outline-variant/10">
           <div className="max-w-7xl mx-auto px-8 flex flex-wrap justify-between items-center gap-8 opacity-70 grayscale">
             <div className="flex items-center gap-3">
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">10,000+ style profiles created</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Email-saved personal profiles</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">4.9★ from early users</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Credit-guarded AI analysis</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold italic">Powered by Claude AI</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold italic">Marketplace-aware recommendations</span>
             </div>
           </div>
         </section>
 
         {/* How It Works */}
-        <section className="py-32 bg-surface">
+        <section id="process" className="py-32 bg-surface scroll-mt-24">
           <div className="max-w-7xl mx-auto px-8">
             <div className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="max-w-2xl">
@@ -94,7 +94,7 @@ export default function Home() {
                 <span className="font-headline text-8xl text-primary/10 absolute top-0 left-0 -z-0 pointer-events-none">01</span>
                 <div className="relative z-10">
                   <h3 className="font-headline text-2xl mb-4 italic">The Digital Mirror</h3>
-                  <p className="text-on-surface-variant leading-relaxed font-body">Upload 3 full-body photos. Our AI maps your unique proportions, skin undertones, and natural contrast levels.</p>
+                  <p className="text-on-surface-variant leading-relaxed font-body">Start with one clear portrait. Add side and full-body photos when you want stronger fit and proportion guidance.</p>
                   <div className="mt-8 h-[2px] w-12 bg-primary"></div>
                 </div>
               </div>
@@ -103,7 +103,7 @@ export default function Home() {
                 <span className="font-headline text-8xl text-primary/10 absolute top-0 left-0 -z-0 pointer-events-none">02</span>
                 <div className="relative z-10">
                   <h3 className="font-headline text-2xl mb-4 italic">The Essence Analysis</h3>
-                  <p className="text-on-surface-variant leading-relaxed font-body">We decode your &apos;Style Aura&apos;—blending Kibbe body typing with advanced color theory to find your perfect palette.</p>
+                  <p className="text-on-surface-variant leading-relaxed font-body">Verify by email, then we generate your color direction, fit signals, style intent, and shopping-ready constraints.</p>
                   <div className="mt-8 h-[2px] w-12 bg-primary"></div>
                 </div>
               </div>
@@ -112,7 +112,7 @@ export default function Home() {
                 <span className="font-headline text-8xl text-primary/10 absolute top-0 left-0 -z-0 pointer-events-none">03</span>
                 <div className="relative z-10">
                   <h3 className="font-headline text-2xl mb-4 italic">The Curated Closet</h3>
-                  <p className="text-on-surface-variant leading-relaxed font-body">Receive 10 fully styled outfits tailored to your body and palette, complete with links to similar pieces.</p>
+                  <p className="text-on-surface-variant leading-relaxed font-body">Review outfit logic, saved result links, and product matches that respect your palette, size, budget, and use case.</p>
                   <div className="mt-8 h-[2px] w-12 bg-primary"></div>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default function Home() {
         </section>
 
         {/* Before/After Section */}
-        <section className="py-32 bg-surface-container-low">
+        <section id="results" className="py-32 bg-surface-container-low scroll-mt-24">
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="order-2 lg:order-1 flex flex-col sm:flex-row gap-6">

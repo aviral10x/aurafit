@@ -8,7 +8,7 @@ export default function Footer() {
           <a className="font-sans text-xs tracking-widest uppercase text-stone-500 hover:underline decoration-amber-500 underline-offset-4" href="#">Terms</a>
           <a className="font-sans text-xs tracking-widest uppercase text-stone-500 hover:underline decoration-amber-500 underline-offset-4" href="#">Contact</a>
         </div>
-        <span className="font-sans text-xs tracking-widest uppercase text-stone-500">&copy; 2025 AuraFit. Powered by Claude AI</span>
+        <span className="font-sans text-xs tracking-widest uppercase text-stone-500">&copy; 2026 AuraFit. AI-assisted style engine</span>
       </div>
     </footer>
   );
