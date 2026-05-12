@@ -13,7 +13,24 @@ from app.models.schemas import (
     RecommendationSubCategory,
     RecommendationSource,
 )
+from app.services.llm_client import (
+    openrouter_chat_text,
+    openrouter_configured,
+    parse_json_response,
+)
+from app.services.cost_ledger import capture_response_usage
 from app.services.rule_engine import rule_engine
+
+
+def _coerce_outfit_payload(payload) -> list[dict]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        for key in ("outfits", "recommendations", "results", "items"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+    return []
 
 
 def _build_conditions(profile: StyleProfile) -> dict[str, str]:
@@ -214,10 +231,6 @@ async def get_recommendations(
     rule_results = rule_engine.match(conditions)
 
     # Step 2: Get AI-generated outfit recommendations
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
     wear_instruction = ""
     if wear_type == "indian":
         wear_instruction = "Focus on Indian wear: kurta, sherwani, bandhgala, pathani for men; saree, lehenga, salwar kameez, kurti for women."
@@ -277,14 +290,59 @@ Use real brands with realistic product names and prices.
 Use positive, empowering language in why_it_works. Focus on what flatters.
 Return ONLY the JSON array."""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6-20250514",
-        max_tokens=4000,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    if openrouter_configured():
+        response_text = openrouter_chat_text(
+            [{"role": "user", "content": prompt}],
+            model=settings.openrouter_text_model,
+            max_tokens=3600,
+            operation="recommendations.text",
+        )
+        results = parse_json_response(response_text)
+    else:
+        import anthropic
 
-    results = json.loads(message.content[0].text)
-    ai_recs = [OutfitRecommendation(**r) for r in results]
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        fallback_model = "claude-sonnet-4-6-20250514"
+        message = client.messages.create(
+            model=fallback_model,
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        capture_response_usage(
+            message,
+            operation="recommendations.text",
+            provider="anthropic",
+            model=fallback_model,
+            details={"max_tokens": 4000},
+        )
+        results = json.loads(message.content[0].text)
+
+    outfit_payloads = _coerce_outfit_payload(results)
+    if not outfit_payloads:
+        return {
+            "western": [],
+            "indian": [],
+            "fusion": [],
+            "accessories": [],
+            "footwear": [],
+            "grooming": [],
+        }
+
+    ai_recs: list[OutfitRecommendation] = []
+    for payload in outfit_payloads:
+        try:
+            ai_recs.append(OutfitRecommendation(**payload))
+        except Exception:
+            continue
+    if not ai_recs:
+        return {
+            "western": [],
+            "indian": [],
+            "fusion": [],
+            "accessories": [],
+            "footwear": [],
+            "grooming": [],
+        }
 
     # Step 3: Organize by sub-category
     categorized: dict[str, list[OutfitRecommendation]] = {}

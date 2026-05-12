@@ -1,0 +1,2 @@
+id,title,brand,category,sub_category,gender,image_url,product_url,affiliate_url,price_inr,original_price_inr,color,color_hex,sizes,available_sizes,fit,fabric,pattern,tags,rating,returnable
+example-001,Example Oxford Shirt,Example Brand,clothing,shirts,men,https://example.com/image.jpg,https://example.com/product,,2499,3299,Dusty Blue,#6F8796,"S,M,L,XL","M,L",regular,cotton,solid,"summer_soft,regular-fit,office,smart-casual",4.3,true

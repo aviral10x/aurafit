@@ -1,8 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { analyzePhotos } from "@/lib/api";
+import {
+  analyzePhotos,
+  apiErrorMessage,
+  AuthPayload,
+  CostPolicy,
+  getCostPolicy,
+  getStoredAuth,
+  requestOtp,
+  storeAuth,
+  UserIdentity,
+  verifyOtp,
+  VisualAnalysisKind,
+} from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -21,6 +33,30 @@ const goalOptions = [
 ];
 
 const ageRanges = ["18-25", "26-35", "36-45", "46-55", "55+"];
+const apparelSizes = ["XS", "S", "M", "L", "XL", "XXL"];
+const waistSizes = ["28", "30", "32", "34", "36", "38", "40"];
+const shoeSizes = ["6", "7", "8", "9", "10", "11", "12"];
+const fitOptions = ["slim", "regular", "relaxed", "oversized"];
+const minPhotosRequired = 1;
+const recommendedPhotos = 3;
+
+const visualAnalysisOptions: { value: VisualAnalysisKind; label: string; description: string }[] = [
+  {
+    value: "color_palette",
+    label: "Color Palette",
+    description: "Seasonal palette, drapes, metals, hair, makeup",
+  },
+  {
+    value: "hairstyles",
+    label: "Hairstyles",
+    description: "Face-framing cuts, parts, volume, grooming",
+  },
+  {
+    value: "look_audit",
+    label: "Look Audit",
+    description: "Grooming, styling, consult-only cosmetic notes",
+  },
+];
 
 const genderMap: Record<string, string> = {
   Masculine: "men",
@@ -38,11 +74,57 @@ export default function UploadPage() {
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [ageRange, setAgeRange] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [shirtSize, setShirtSize] = useState("");
+  const [bottomSize, setBottomSize] = useState("");
+  const [shoeSize, setShoeSize] = useState("");
+  const [preferredFit, setPreferredFit] = useState("regular");
+  const [pincode, setPincode] = useState("");
+  const [visualAnalysisKind, setVisualAnalysisKind] = useState<VisualAnalysisKind>("color_palette");
+  const [currentUser, setCurrentUser] = useState<UserIdentity | null>(null);
+  const [authSession, setAuthSession] = useState<AuthPayload | null>(null);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
   const [budgetMin] = useState(50);
   const [budgetMax] = useState(300);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
+  const [isAuthWorking, setIsAuthWorking] = useState(false);
+  const [costPolicy, setCostPolicy] = useState<CostPolicy | null>(null);
+
+  useEffect(() => {
+    try {
+      const auth = getStoredAuth();
+      if (auth?.user) {
+        setAuthSession(auth);
+        setCurrentUser(auth.user);
+        setProfileName(auth.user.display_name || "");
+        setAuthEmail(auth.user.email || "");
+        return;
+      }
+      const stored = localStorage.getItem("aurafit:user");
+      if (stored) {
+        const user = JSON.parse(stored) as UserIdentity;
+        setCurrentUser(user);
+        setProfileName(user.display_name || "");
+        setAuthEmail(user.email || "");
+      }
+    } catch {
+      // Ignore bad local identity data.
+    }
+  }, []);
+
+  useEffect(() => {
+    getCostPolicy()
+      .then(setCostPolicy)
+      .catch(() => setCostPolicy(null));
+  }, []);
 
   function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -80,11 +162,16 @@ export default function UploadPage() {
     );
   }
 
-  const canSubmit = photos.length >= 3 && !isSubmitting;
+  const canSubmit = photos.length >= minPhotosRequired && !isSubmitting && !isAuthWorking;
 
-  async function handleSubmit() {
-    if (!canSubmit) return;
+  function optionalNumber(value: string) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  async function runAnalysis(auth: AuthPayload) {
     setIsSubmitting(true);
+    setAuthMessage("");
 
     try {
       const result = await analyzePhotos(
@@ -96,26 +183,95 @@ export default function UploadPage() {
         wearType,
         selectedOccasions.map((o) => o.toLowerCase().replace(/\s+/g, "-")),
         selectedGoals.map((g) => g.toLowerCase().replace(/ /g, "-")),
-        ageRange
-      );
-      if (result.profile && result.recommendations) {
-        try {
-          sessionStorage.setItem(
-            `aurafit:${result.job_id}`,
-            JSON.stringify({
-              profile: result.profile,
-              recommendations: result.recommendations,
-            })
-          );
-        } catch {
-          // Ignore storage issues and fall back to API-based loading.
+        ageRange,
+        {
+          height_cm: optionalNumber(heightCm),
+          weight_kg: optionalNumber(weightKg),
+          shirt_size: shirtSize || undefined,
+          bottom_size: bottomSize || undefined,
+          shoe_size: shoeSize || undefined,
+          preferred_fit: preferredFit || undefined,
+          pincode: pincode || undefined,
+        },
+        {
+          user_id: auth.user.id,
+          profile_name: profileName.trim() || auth.user.display_name,
+          session_token: auth.session_token,
         }
+      );
+
+      try {
+        sessionStorage.setItem(
+          `aurafit:${result.job_id}`,
+          JSON.stringify({
+            status: result.status || "queued",
+            profile: result.profile,
+            recommendations: result.recommendations,
+            fitProfile: result.fit_profile,
+            user: result.user || auth.user,
+            profileName: result.profile_name || profileName.trim() || auth.user.display_name,
+            preferredVisualAnalysisKind: visualAnalysisKind,
+            visualAnalysis: null,
+          })
+        );
+      } catch {
+        // Ignore storage issues and fall back to API-based loading.
       }
 
-      router.push(`/results/${result.job_id}`);
-    } catch {
+      router.push(`/analyzing?jobId=${encodeURIComponent(result.job_id)}`);
+    } catch (error) {
       setIsSubmitting(false);
-      alert("Something went wrong. Please try again.");
+      setIsAuthWorking(false);
+      setAuthMessage(apiErrorMessage(error, "Something went wrong during analysis. Please try again."));
+    }
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    if (authSession?.session_token) {
+      await runAnalysis(authSession);
+      return;
+    }
+
+    setShowAuthGate(true);
+    setAuthMessage("Verify your email to start analysis and save your results.");
+  }
+
+  async function requestAnalyzeOtp() {
+    if (!authEmail.trim()) return;
+    setIsAuthWorking(true);
+    setAuthMessage("");
+    try {
+      const response = await requestOtp(authEmail.trim(), profileName.trim());
+      setOtpRequested(true);
+      setAuthMessage(
+        response.dev_otp
+          ? `Dev OTP: ${response.dev_otp}`
+          : "OTP sent. Check your email."
+      );
+    } catch (error) {
+      setAuthMessage(apiErrorMessage(error, "Could not send OTP. Please check your email and try again."));
+    } finally {
+      setIsAuthWorking(false);
+    }
+  }
+
+  async function verifyOtpAndAnalyze() {
+    if (!authEmail.trim() || !otpCode.trim()) return;
+    setIsAuthWorking(true);
+    setAuthMessage("");
+    try {
+      const auth = await verifyOtp(authEmail.trim(), otpCode.trim(), profileName.trim());
+      storeAuth(auth);
+      setAuthSession(auth);
+      setCurrentUser(auth.user);
+      setProfileName(auth.user.display_name || profileName);
+      setAuthEmail(auth.user.email || authEmail);
+      setShowAuthGate(false);
+      await runAnalysis(auth);
+    } catch (error) {
+      setAuthMessage(apiErrorMessage(error, "OTP verification failed. Please try again."));
+      setIsAuthWorking(false);
     }
   }
 
@@ -152,11 +308,65 @@ export default function UploadPage() {
         </header>
 
         <section className="space-y-12">
+          <div className="space-y-6">
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary">00. Prep First</h2>
+                <p className="font-body text-sm text-on-surface-variant mt-2">
+                  Upload and customize first. We ask for email OTP only when you click Analyze.
+                </p>
+              </div>
+              {currentUser && (
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary">
+                  Active ID: {currentUser.display_name}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
+              <div>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Low Friction</span>
+                <p className="font-body text-xs text-on-surface-variant leading-relaxed">No login wall before photo upload.</p>
+              </div>
+              <div>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Credit Safe</span>
+                <p className="font-body text-xs text-on-surface-variant leading-relaxed">
+                  AI starts after OTP · {costPolicy?.analysis_limit_per_user_per_day ?? 3}/day analysis cap
+                </p>
+              </div>
+              <div>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Recoverable</span>
+                <p className="font-body text-xs text-on-surface-variant leading-relaxed">We email your result link and attach it to your personal ID.</p>
+              </div>
+            </div>
+            {costPolicy && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30">
+                <div>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Email OTP</span>
+                  <p className="font-body text-xs text-on-surface-variant">
+                    {costPolicy.email_delivery_configured ? "Production email ready" : "Needs SMTP/Resend key"}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Daily Credit Guard</span>
+                  <p className="font-body text-xs text-on-surface-variant">
+                    ${Number(costPolicy.max_daily_ai_cost_per_user_usd || 0).toFixed(2)} per verified user
+                  </p>
+                </div>
+                <div>
+                  <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block mb-1">Visual Boards</span>
+                  <p className="font-body text-xs text-on-surface-variant">
+                    {costPolicy.max_visual_generations_per_user_per_day || 0}/day after save
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Upload Section */}
           <div className="space-y-6">
             <div className="flex justify-between items-end">
               <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary">01. Visual Data</h2>
-              <span className="font-label text-[10px] text-on-surface-variant">5/10 PHOTOS RECOMMENDED</span>
+              <span className="font-label text-[10px] text-on-surface-variant">1 REQUIRED / 3+ RECOMMENDED</span>
             </div>
 
             {/* Drag & Drop Zone */}
@@ -185,7 +395,7 @@ export default function UploadPage() {
               </div>
               <p className="font-headline text-xl mb-2 italic">Drop your photos here or <span className="underline decoration-primary/40 underline-offset-4">click to browse</span></p>
               <p className="text-xs text-on-surface-variant font-label tracking-wider max-w-xs mx-auto leading-relaxed">
-                BEST RESULTS: INCLUDE A FRONT-FACING SHOT, SIDE VIEW, AND A FACE CLOSE-UP.
+                START WITH ONE CLEAR PORTRAIT. ADD SIDE AND FULL-BODY PHOTOS FOR BETTER FIT ANALYSIS.
               </p>
             </div>
 
@@ -218,12 +428,31 @@ export default function UploadPage() {
             <div className="space-y-2">
               <div className="flex justify-between font-label text-[10px] tracking-widest text-on-surface-variant">
                 <span>UPLOAD PROGRESS</span>
-                <span className="text-primary">{photos.length} / 3 MINIMUM</span>
+                <span className="text-primary">{photos.length} / {minPhotosRequired} REQUIRED</span>
               </div>
               <div className="w-full h-1 bg-surface-container-highest overflow-hidden">
-                <div className="h-full bg-primary transition-all duration-700" style={{ width: `${Math.min(100, (photos.length / 3) * 100)}%` }}></div>
+                <div className="h-full bg-primary transition-all duration-700" style={{ width: `${Math.min(100, (photos.length / recommendedPhotos) * 100)}%` }}></div>
               </div>
             </div>
+
+            {/* Trust Strip */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3 pt-2">
+              {[
+                { icon: "lock", text: "Encrypted in transit & at rest" },
+                { icon: "no_photography", text: "Never used to train AI" },
+                { icon: "auto_delete", text: "Auto-deleted after 30 days" },
+              ].map(({ icon, text }) => (
+                <div key={icon} className="flex items-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[16px] text-outline">{icon}</span>
+                  <span className="font-label text-[10px] tracking-wider uppercase">{text}</span>
+                </div>
+              ))}
+              <a href="/privacy" className="flex items-center gap-1 text-primary hover:underline underline-offset-4 transition-colors" target="_blank" rel="noopener noreferrer">
+                <span className="font-label text-[10px] tracking-wider uppercase">Privacy Policy</span>
+                <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+              </a>
+            </div>
+
           </div>
 
           {/* Preferences Section */}
@@ -357,13 +586,249 @@ export default function UploadPage() {
             </div>
           </div>
 
+          {/* Fit Details Section */}
+          <div className="space-y-8 pt-8">
+            <div>
+              <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary mb-2">03. Fit Data</h2>
+              <p className="font-body text-sm text-on-surface-variant">
+                These details make marketplace matches size-aware instead of just visually stylish.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label className="space-y-2">
+                <span className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant">Height CM</span>
+                <input
+                  value={heightCm}
+                  onChange={(event) => setHeightCm(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="175"
+                  className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant">Weight KG</span>
+                <input
+                  value={weightKg}
+                  onChange={(event) => setWeightKg(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="70"
+                  className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant">Pincode</span>
+                <input
+                  value={pincode}
+                  onChange={(event) => setPincode(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="110001"
+                  className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant block mb-4">Top Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {apparelSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setShirtSize(shirtSize === size ? "" : size)}
+                      className={`px-4 py-2 border text-[11px] font-label uppercase tracking-wider rounded-full transition-colors ${
+                        shirtSize === size
+                          ? "border-primary bg-primary-fixed text-on-primary-fixed"
+                          : "border-outline-variant hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant block mb-4">Bottom / Waist Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {waistSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setBottomSize(bottomSize === size ? "" : size)}
+                      className={`px-4 py-2 border text-[11px] font-label uppercase tracking-wider rounded-full transition-colors ${
+                        bottomSize === size
+                          ? "border-primary bg-primary-fixed text-on-primary-fixed"
+                          : "border-outline-variant hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant block mb-4">Shoe Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {shoeSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setShoeSize(shoeSize === size ? "" : size)}
+                      className={`px-4 py-2 border text-[11px] font-label uppercase tracking-wider rounded-full transition-colors ${
+                        shoeSize === size
+                          ? "border-primary bg-primary-fixed text-on-primary-fixed"
+                          : "border-outline-variant hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant block mb-4">Preferred Fit</label>
+                <div className="flex flex-wrap gap-2">
+                  {fitOptions.map((fit) => (
+                    <button
+                      key={fit}
+                      onClick={() => setPreferredFit(fit)}
+                      className={`px-4 py-2 border text-[11px] font-label uppercase tracking-wider rounded-full transition-colors ${
+                        preferredFit === fit
+                          ? "border-primary bg-primary-fixed text-on-primary-fixed"
+                          : "border-outline-variant hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {fit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Analysis Section */}
+          <div className="space-y-6 pt-8">
+            <div>
+              <h2 className="font-label text-xs tracking-widest uppercase font-bold text-primary mb-2">04. Visual Output</h2>
+              <p className="font-body text-sm text-on-surface-variant">
+                Choose the premium board we can generate after the verified analysis is complete.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {visualAnalysisOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setVisualAnalysisKind(option.value)}
+                  className={`text-left p-5 rounded-xl border transition-all ${
+                    visualAnalysisKind === option.value
+                      ? "border-primary bg-primary-fixed/30 shadow-sm"
+                      : "border-outline-variant bg-surface-container-low hover:border-primary/60"
+                  }`}
+                >
+                  <span className="font-label text-[11px] uppercase tracking-widest text-primary block mb-3">
+                    {option.label}
+                  </span>
+                  <span className="font-body text-xs text-on-surface-variant leading-relaxed">
+                    {option.description} · after verification
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {showAuthGate && !authSession?.session_token && (
+            <div className="space-y-5 pt-8">
+              <div className="bg-surface-container-low rounded-2xl p-6 md:p-8 border border-primary/25 editorial-shadow">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
+                  <div>
+                    <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">
+                      Final Step
+                    </span>
+                    <h2 className="font-headline text-3xl mb-3">Verify email to start analysis</h2>
+                    <p className="font-body text-sm text-on-surface-variant max-w-2xl leading-relaxed">
+                      We will save the result to your AuraFit ID and email you the result link. AI credits are used only after OTP verification.
+                    </p>
+                  </div>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-primary bg-primary-fixed/30 rounded-full px-3 py-1 w-fit">
+                    Credit Safe
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Name Optional</span>
+                    <input
+                      value={profileName}
+                      onChange={(event) => setProfileName(event.target.value)}
+                      placeholder="Aviral"
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Email</span>
+                    <input
+                      value={authEmail}
+                      onChange={(event) => setAuthEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      inputMode="email"
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
+
+                {otpRequested && (
+                  <label className="space-y-2 block mt-4">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">6-Digit OTP</span>
+                    <input
+                      value={otpCode}
+                      onChange={(event) => setOtpCode(event.target.value)}
+                      placeholder="123456"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center mt-5">
+                  <button
+                    onClick={otpRequested ? verifyOtpAndAnalyze : requestAnalyzeOtp}
+                    disabled={isAuthWorking || isSubmitting || !authEmail.trim() || (otpRequested && !otpCode.trim())}
+                    className="bg-primary text-on-primary px-6 py-3 rounded-lg font-label uppercase tracking-widest text-xs disabled:opacity-40"
+                  >
+                    {isSubmitting
+                      ? "Generating..."
+                      : isAuthWorking
+                        ? "Working..."
+                        : otpRequested
+                          ? "Verify & Generate"
+                          : "Send OTP"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAuthGate(false);
+                      setAuthMessage("");
+                    }}
+                    disabled={isSubmitting || isAuthWorking}
+                    className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-label uppercase tracking-widest text-xs disabled:opacity-40"
+                  >
+                    Edit Inputs
+                  </button>
+                </div>
+
+                {authMessage && (
+                  <p className="font-label text-[10px] uppercase tracking-widest text-primary mt-5">
+                    {authMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* CTA Button */}
           <div className="pt-12">
             <button
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || (showAuthGate && !authSession?.session_token)}
               className={`w-full py-6 rounded-lg font-label uppercase tracking-[0.3em] flex items-center justify-center gap-3 group relative overflow-hidden ${
-                canSubmit
+                canSubmit && (!showAuthGate || authSession?.session_token)
                   ? "bg-primary text-on-primary cursor-pointer hover:opacity-90 transition-opacity"
                   : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"
               }`}
@@ -380,9 +845,14 @@ export default function UploadPage() {
                 </>
               )}
             </button>
+            {!authSession?.session_token && photos.length >= minPhotosRequired && !isSubmitting && !showAuthGate && (
+              <p className="text-center mt-4 font-label text-[10px] text-on-surface-variant uppercase tracking-widest opacity-80">
+                Next: email OTP, then we generate and email your result link.
+              </p>
+            )}
             {!canSubmit && !isSubmitting && (
               <p className="text-center mt-4 font-label text-[10px] text-error uppercase tracking-widest opacity-80">
-                Please upload {3 - photos.length} more photo{3 - photos.length !== 1 ? "s" : ""} to unlock analysis
+                Please upload {minPhotosRequired - photos.length} more photo{minPhotosRequired - photos.length !== 1 ? "s" : ""} to unlock analysis
               </p>
             )}
           </div>

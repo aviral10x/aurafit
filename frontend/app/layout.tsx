@@ -27,9 +27,28 @@ const notoSerif = Noto_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "AuraFit | High-End Editorial Style AI",
+  title: "AuraFit — AI Style Analysis & Personal Color Profile",
   description:
-    "Upload your photos. Get your color palette, body type analysis, and 10 outfits picked just for you — in under 30 seconds.",
+    "Upload 3 photos. Get your Fitzpatrick skin tone, color season, body type, and 10 personalized outfit recommendations — powered by Claude AI. Free to try.",
+  metadataBase: new URL("https://aurafit.fun"),
+  openGraph: {
+    title: "AuraFit — AI Style Analysis & Personal Color Profile",
+    description:
+      "Upload 3 photos. Get your color season, body type, and 10 personalized outfits in under 30 seconds.",
+    url: "https://aurafit.fun",
+    siteName: "AuraFit",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AuraFit — AI Style Analysis",
+    description:
+      "Get your color palette, body type analysis, and 10 outfits picked just for you — in under 30 seconds.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

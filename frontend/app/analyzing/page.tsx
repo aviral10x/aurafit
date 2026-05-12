@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getJobStatus } from "@/lib/api";
 
 const steps = [
   "Photos uploaded securely",
@@ -23,9 +24,52 @@ const bgImages = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuB1AmCv0k3N9vRR92oSFqqeq_k1yZhdeZJ10pvEmVPioWWrZ8gK6CTxDRulk0bNHGq4vcj9NWB5PP8xMSb-h6urXzgGFz3lDd7b5mYR3Z7bFlcnoV6pQywN3rN77MNixMlDL7dTYPp21nT9ZI65iRWSsIgf-nvkvZUOgIM4bbAXDiDOhttJHzhCzI4qOds2LF3kWAM5xTaI68arZi9bnFXNz8sXmOBJcCQD-bEgxIEEvxoH0umN4FTGB_EmvXC2SilCPKqRme5Nc0g",
 ];
 
-export default function AnalyzingPage() {
+const completeStatuses = new Set(["complete", "completed", "succeeded", "success"]);
+const failedStatuses = new Set(["failed", "failure", "error"]);
+
+function normalizeStatus(status: string) {
+  return status.trim().toLowerCase();
+}
+
+function statusCopy(status: string, errorMessage: string) {
+  if (failedStatuses.has(status)) {
+    return {
+      eyebrow: "Needs attention",
+      title: "We hit a styling snag.",
+      detail: errorMessage || "Analysis failed. Please try uploading again.",
+    };
+  }
+
+  if (status === "queued") {
+    return {
+      eyebrow: "Queued",
+      title: "You're next in the styling queue.",
+      detail: "We've received your photos and will start the analysis shortly.",
+    };
+  }
+
+  if (status === "checking") {
+    return {
+      eyebrow: "Checking",
+      title: "Checking the analysis queue...",
+      detail: errorMessage || "Reconnecting without restarting your job.",
+    };
+  }
+
+  return {
+    eyebrow: "Processing",
+    title: "Reading your aura...",
+    detail: "Your analysis is running now. This page will move forward automatically.",
+  };
+}
+
+function AnalyzingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId") || "";
   const [currentStep, setCurrentStep] = useState(0);
+  const [jobStatus, setJobStatus] = useState("queued");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,13 +86,53 @@ export default function AnalyzingPage() {
   }, []);
 
   useEffect(() => {
-    if (currentStep >= steps.length - 1) {
-      const timeout = setTimeout(() => {
-        router.push("/results/demo");
-      }, 3000);
-      return () => clearTimeout(timeout);
+    if (!jobId) {
+      setErrorMessage("Missing analysis job. Please upload your photos again.");
+      setJobStatus("failed");
+      return;
     }
-  }, [currentStep, router]);
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    async function pollJobStatus() {
+      try {
+        const data = await getJobStatus(jobId);
+        if (cancelled) return;
+
+        const normalizedStatus = normalizeStatus(data.status);
+        setJobStatus(normalizedStatus);
+        setErrorMessage(data.error_message || "");
+
+        if (completeStatuses.has(normalizedStatus)) {
+          router.replace(`/results/${encodeURIComponent(jobId)}`);
+          return;
+        }
+
+        if (failedStatuses.has(normalizedStatus)) {
+          setErrorMessage(data.error_message || "Analysis failed. Please try uploading again.");
+          return;
+        }
+
+        timeoutId = setTimeout(pollJobStatus, 3000);
+      } catch {
+        if (cancelled) return;
+        setJobStatus("checking");
+        setErrorMessage("Reconnecting to the analysis queue...");
+        timeoutId = setTimeout(pollJobStatus, 5000);
+      }
+    }
+
+    pollJobStatus();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [jobId, router]);
+
+  const isFailed = failedStatuses.has(jobStatus);
+  const copy = statusCopy(jobStatus, errorMessage);
 
   return (
     <div className="bg-[#0D0D0D] text-on-surface font-body min-h-screen flex flex-row items-center justify-center overflow-hidden relative">
@@ -80,18 +164,23 @@ export default function AnalyzingPage() {
           <div className="absolute inset-4 scanner-ring animate-[spin_5s_linear_infinite_reverse] opacity-50"></div>
           <div className="relative flex flex-col items-center">
             <span className="material-symbols-outlined text-primary text-5xl mb-2">auto_awesome</span>
-            <p className="font-label text-xs tracking-[0.3em] uppercase text-primary/70">Scanning</p>
+            <p className="font-label text-xs tracking-[0.3em] uppercase text-primary/70">{copy.eyebrow}</p>
           </div>
         </div>
 
         {/* Headline */}
         <div className="mb-12">
           <h2 className="text-4xl md:text-5xl font-headline text-surface-container-lowest leading-tight mb-4">
-            Reading your aura...
+            {copy.title}
           </h2>
           <p className="font-label text-[10px] tracking-widest text-tertiary uppercase">
-            This takes about 20 seconds
+            {isFailed ? copy.detail : `Job ${jobId} · ${copy.eyebrow}`}
           </p>
+          {!isFailed && (
+            <p className="font-body text-sm text-surface-container-highest mt-3">
+              {copy.detail}
+            </p>
+          )}
         </div>
 
         {/* Status Steps */}
@@ -116,7 +205,7 @@ export default function AnalyzingPage() {
                 </div>
                 <span className={`font-body text-sm ${
                   isCompleted ? "text-secondary" :
-                  isActive ? "text-surface-container-lowest font-medium" :
+                  isActive && !isFailed ? "text-surface-container-lowest font-medium" :
                   "text-surface-container-highest"
                 }`}>
                   {step}
@@ -125,6 +214,14 @@ export default function AnalyzingPage() {
             );
           })}
         </div>
+        {isFailed && (
+          <button
+            onClick={() => router.push("/upload")}
+            className="mt-8 bg-primary text-on-primary px-6 py-3 rounded-lg font-label uppercase tracking-widest text-xs"
+          >
+            Upload Again
+          </button>
+        )}
       </main>
 
       {/* Footer */}
@@ -140,5 +237,13 @@ export default function AnalyzingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function AnalyzingPage() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyzingContent />
+    </Suspense>
   );
 }

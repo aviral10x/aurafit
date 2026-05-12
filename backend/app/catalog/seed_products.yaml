@@ -1,0 +1,208 @@
+products:
+  - id: snitch-olive-overshirt-001
+    title: Textured Olive Overshirt
+    brand: Snitch
+    marketplace: snitch
+    category: clothing
+    sub_category: shirts
+    gender: men
+    image_url: https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&h=800&fit=crop
+    product_url: https://www.snitch.co.in/
+    affiliate_url: https://www.snitch.co.in/
+    price_inr: 1799
+    original_price_inr: 2499
+    colors:
+      - name: Olive
+        hex: "#708238"
+        undertone_tags: [warm, olive, neutral]
+        season_tags: [autumn_warm, autumn_soft, autumn_deep]
+    sizes: [S, M, L, XL, XXL]
+    available_sizes: [S, M, L, XL]
+    fit: regular
+    fabric: cotton blend
+    pattern: textured
+    tags: [olive, earth-tone, layering, broad-shoulder, regular-fit]
+    rating: 4.3
+    returnable: true
+
+  - id: snitch-rust-knit-polo-002
+    title: Rust Textured Knit Polo
+    brand: Snitch
+    marketplace: snitch
+    category: clothing
+    sub_category: polos
+    gender: men
+    image_url: https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop
+    product_url: https://www.snitch.co.in/
+    affiliate_url: https://www.snitch.co.in/
+    price_inr: 1499
+    original_price_inr: 1999
+    colors:
+      - name: Rust
+        hex: "#B7410E"
+        undertone_tags: [warm, olive]
+        season_tags: [autumn_warm, autumn_deep]
+    sizes: [S, M, L, XL]
+    available_sizes: [M, L, XL]
+    fit: slim
+    fabric: cotton knit
+    pattern: solid
+    tags: [rust, warm, smart-casual, textured, slim-fit]
+    rating: 4.1
+    returnable: true
+
+  - id: amazon-camel-chinos-003
+    title: Camel Straight Fit Chinos
+    brand: Symbol Premium
+    marketplace: amazon
+    category: clothing
+    sub_category: trousers
+    gender: men
+    image_url: https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=600&h=800&fit=crop
+    product_url: https://www.amazon.in/
+    affiliate_url: https://www.amazon.in/
+    price_inr: 1899
+    original_price_inr: 2499
+    colors:
+      - name: Camel
+        hex: "#C19A6B"
+        undertone_tags: [warm, neutral, olive]
+        season_tags: [autumn_warm, autumn_soft, spring_warm]
+    sizes: [28, 30, 32, 34, 36, 38]
+    available_sizes: [30, 32, 34, 36]
+    fit: straight
+    fabric: cotton twill
+    pattern: solid
+    tags: [camel, straight-leg, balanced, warm-neutral, relaxed-lower-body]
+    rating: 4.0
+    returnable: true
+
+  - id: myntra-navy-shirt-004
+    title: Navy Linen Blend Shirt
+    brand: HIGHLANDER
+    marketplace: myntra
+    category: clothing
+    sub_category: shirts
+    gender: men
+    image_url: https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=800&fit=crop
+    product_url: https://www.myntra.com/
+    affiliate_url: https://www.myntra.com/
+    price_inr: 1299
+    original_price_inr: 2299
+    colors:
+      - name: Navy
+        hex: "#1F2A44"
+        undertone_tags: [cool, neutral]
+        season_tags: [winter_deep, winter_cool, summer_cool, summer_soft]
+    sizes: [S, M, L, XL, XXL]
+    available_sizes: [S, M, L, XL, XXL]
+    fit: regular
+    fabric: linen blend
+    pattern: solid
+    tags: [navy, cool-neutral, vertical, professional, regular-fit]
+    rating: 4.2
+    returnable: true
+
+  - id: flipkart-sage-kurta-005
+    title: Sage Straight Kurta Set
+    brand: Indo Era
+    marketplace: flipkart
+    category: clothing
+    sub_category: kurta_set
+    gender: women
+    image_url: https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&h=800&fit=crop
+    product_url: https://www.flipkart.com/
+    affiliate_url: https://www.flipkart.com/
+    price_inr: 2199
+    original_price_inr: 3999
+    colors:
+      - name: Sage Green
+        hex: "#B2AC88"
+        undertone_tags: [warm, neutral, olive]
+        season_tags: [autumn_soft, summer_soft]
+    sizes: [XS, S, M, L, XL, XXL]
+    available_sizes: [S, M, L, XL]
+    fit: straight
+    fabric: viscose rayon
+    pattern: minimal print
+    tags: [sage, straight-cut, vertical, soft-muted, indian]
+    rating: 4.1
+    returnable: true
+
+  - id: myntra-dusty-rose-dress-006
+    title: Dusty Rose Wrap Midi Dress
+    brand: DressBerry
+    marketplace: myntra
+    category: clothing
+    sub_category: dresses
+    gender: women
+    image_url: https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&h=800&fit=crop
+    product_url: https://www.myntra.com/
+    affiliate_url: https://www.myntra.com/
+    price_inr: 1899
+    original_price_inr: 3299
+    colors:
+      - name: Dusty Rose
+        hex: "#DCAE96"
+        undertone_tags: [neutral, cool]
+        season_tags: [summer_soft, autumn_soft]
+    sizes: [XS, S, M, L, XL]
+    available_sizes: [XS, S, M, L]
+    fit: regular
+    fabric: viscose
+    pattern: solid
+    tags: [wrap, waist-definition, dusty, soft-muted, date-night]
+    rating: 4.4
+    returnable: true
+
+  - id: amazon-charcoal-trouser-007
+    title: Charcoal Tailored Trousers
+    brand: Van Heusen
+    marketplace: amazon
+    category: clothing
+    sub_category: trousers
+    gender: unisex
+    image_url: https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop
+    product_url: https://www.amazon.in/
+    affiliate_url: https://www.amazon.in/
+    price_inr: 2499
+    original_price_inr: 3499
+    colors:
+      - name: Charcoal
+        hex: "#36454F"
+        undertone_tags: [cool, neutral]
+        season_tags: [winter_deep, winter_cool, summer_cool]
+    sizes: [28, 30, 32, 34, 36, 38, 40]
+    available_sizes: [30, 32, 34, 36, 38]
+    fit: tailored
+    fabric: poly viscose
+    pattern: solid
+    tags: [charcoal, professional, vertical, tailored, office]
+    rating: 4.2
+    returnable: true
+
+  - id: flipkart-cream-sneakers-008
+    title: Cream Minimal Sneakers
+    brand: Red Tape
+    marketplace: flipkart
+    category: footwear
+    sub_category: sneakers
+    gender: unisex
+    image_url: https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&h=800&fit=crop
+    product_url: https://www.flipkart.com/
+    affiliate_url: https://www.flipkart.com/
+    price_inr: 2299
+    original_price_inr: 4999
+    colors:
+      - name: Cream
+        hex: "#FFFDD0"
+        undertone_tags: [warm, neutral]
+        season_tags: [spring_warm, autumn_warm, autumn_soft]
+    sizes: [6, 7, 8, 9, 10, 11]
+    available_sizes: [7, 8, 9, 10]
+    fit: regular
+    fabric: faux leather
+    pattern: solid
+    tags: [cream, minimal, warm-neutral, everyday, sneakers]
+    rating: 4.0
+    returnable: true

@@ -65,21 +65,28 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Social Proof Strip */}
+        {/* Trust Strip */}
         <section className="py-10 bg-surface-container-low border-y border-outline-variant/10">
-          <div className="max-w-7xl mx-auto px-8 flex flex-wrap justify-between items-center gap-8 opacity-70 grayscale">
+          <div className="max-w-7xl mx-auto px-8 flex flex-wrap justify-between items-center gap-8 opacity-70">
             <div className="flex items-center gap-3">
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">10,000+ style profiles created</span>
+              <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Powered by Claude AI</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">4.9★ from early users</span>
+              <span className="material-symbols-outlined text-primary text-sm">lock</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Photos encrypted & private</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold italic">Powered by Claude AI</span>
+              <span className="material-symbols-outlined text-primary text-sm">timer</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Results in under 30 seconds</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-sm">auto_delete</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Photos deleted after 30 days</span>
             </div>
           </div>
         </section>
+
 
         {/* How It Works */}
         <section id="how-it-works" className="py-32 bg-surface">
