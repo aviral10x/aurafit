@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import ssl
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -11,6 +12,13 @@ from app.models.db import Base
 _db_available = False
 
 _is_supabase_pooler = "pooler.supabase.com" in settings.database_url
+_connect_args = {}
+if _is_supabase_pooler:
+    _connect_args = {
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
+        "ssl": ssl.create_default_context(),
+    }
 
 try:
     engine = create_async_engine(
@@ -18,10 +26,7 @@ try:
         echo=False,
         pool_pre_ping=True,
         poolclass=NullPool if _is_supabase_pooler else None,
-        connect_args={
-            "statement_cache_size": 0,
-            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
-        } if _is_supabase_pooler else {},
+        connect_args=_connect_args,
     )
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 except Exception:
