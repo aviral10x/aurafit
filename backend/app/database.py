@@ -15,10 +15,13 @@ _db_error: str | None = None
 _is_supabase_pooler = "pooler.supabase.com" in settings.database_url
 _connect_args = {}
 if _is_supabase_pooler:
+    pooler_ssl_context = ssl.create_default_context()
+    pooler_ssl_context.check_hostname = False
+    pooler_ssl_context.verify_mode = ssl.CERT_NONE
     _connect_args = {
         "statement_cache_size": 0,
         "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
-        "ssl": ssl.create_default_context(),
+        "ssl": pooler_ssl_context,
     }
 
 try:
