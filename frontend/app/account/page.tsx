@@ -8,10 +8,12 @@ import {
   apiErrorMessage,
   AuthPayload,
   CatalogStatus,
+  claimSession,
   CostPolicy,
   exchangeSupabaseSession,
   getCatalogStatus,
   getCostPolicy,
+  getRecentJobs,
   getStoredAuth,
   getUserSessions,
   getUserUsage,
@@ -19,6 +21,7 @@ import {
   storeAuth,
   UsageLedgerPayload,
   UserIdentity,
+  RecentJobSummary,
   UserSessionSummary,
   verifyOtp,
 } from "@/lib/api";
@@ -75,6 +78,9 @@ export default function AccountPage() {
   const [otpCode, setOtpCode] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);
   const [message, setMessage] = useState("");
+  const [recentJobs, setRecentJobs] = useState<RecentJobSummary[]>([]);
+  const [recoveryInput, setRecoveryInput] = useState("");
+  const [claimingJobId, setClaimingJobId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +94,9 @@ export default function AccountPage() {
           setUser(auth.user);
           setName(auth.user.display_name);
           setEmail(auth.user.email || "");
+          const browserJobs = getRecentJobs();
+          setRecentJobs(browserJobs);
+          await claimRecentBrowserJobs(auth, browserJobs);
           await loadSessions(auth.user.id, auth.session_token);
           return;
         }
@@ -102,6 +111,9 @@ export default function AccountPage() {
             setUser(bridgedAuth.user);
             setName(bridgedAuth.user.display_name);
             setEmail(bridgedAuth.user.email || "");
+            const browserJobs = getRecentJobs();
+            setRecentJobs(browserJobs);
+            await claimRecentBrowserJobs(bridgedAuth, browserJobs);
             await loadSessions(bridgedAuth.user.id, bridgedAuth.session_token);
             return;
           } catch {
@@ -116,6 +128,7 @@ export default function AccountPage() {
         setUser(storedUser);
         setName(storedUser.display_name);
         setEmail(storedUser.email || "");
+        setRecentJobs(getRecentJobs());
         await loadSessions(storedUser.id);
       } catch {
         // Ignore bad local identity data and let the user sign in with OTP.
@@ -161,6 +174,52 @@ export default function AccountPage() {
     }
   }
 
+  function resultIdFromInput(value: string) {
+    const match = value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return match?.[0] || value.trim();
+  }
+
+  async function claimRecentBrowserJobs(auth: AuthPayload, jobs: RecentJobSummary[]) {
+    if (!auth.session_token || jobs.length === 0) return;
+
+    let claimedCount = 0;
+    for (const job of jobs.slice(0, 5)) {
+      try {
+        await claimSession(job.job_id, auth.user.id, job.profile_name || auth.user.display_name, auth.session_token);
+        claimedCount += 1;
+      } catch {
+        // Ignore stale browser-only result IDs; manual recovery below gives clearer feedback.
+      }
+    }
+
+    if (claimedCount > 0) {
+      setMessage(`Recovered ${claimedCount} recent profile${claimedCount === 1 ? "" : "s"} from this browser.`);
+    }
+  }
+
+  async function handleClaimResult(jobIdInput: string = recoveryInput) {
+    const jobId = resultIdFromInput(jobIdInput);
+    if (!jobId) return;
+    if (!authSession?.session_token || !user) {
+      setError("Verify your email OTP first, then recover the result link.");
+      return;
+    }
+
+    setClaimingJobId(jobId);
+    setError("");
+    setMessage("");
+    try {
+      const claimed = await claimSession(jobId, user.id, name.trim() || user.display_name, authSession.session_token);
+      setMessage(`Recovered ${claimed.profile_name || "your profile"} into this account.`);
+      setRecoveryInput("");
+      await loadSessions(user.id, authSession.session_token);
+    } catch (error) {
+      setError(apiErrorMessage(error, "Could not recover that result. Check that the link opens on this live site."));
+    } finally {
+      setClaimingJobId("");
+    }
+  }
+
   async function handleRequestOtp() {
     if (!email.trim()) return;
     setLoading(true);
@@ -190,6 +249,9 @@ export default function AccountPage() {
       setName(auth.user.display_name);
       setEmail(auth.user.email || "");
       setMessage("Signed in with verified email.");
+      const browserJobs = getRecentJobs();
+      setRecentJobs(browserJobs);
+      await claimRecentBrowserJobs(auth, browserJobs);
       await loadSessions(auth.user.id, auth.session_token);
     } catch (error) {
       setError(apiErrorMessage(error, "OTP verification failed. Please try again."));
@@ -279,6 +341,49 @@ export default function AccountPage() {
           {message && <p className="font-label text-[10px] uppercase tracking-widest text-primary mt-5">{message}</p>}
           {error && <p className="text-error font-label text-xs uppercase tracking-widest mt-5">{error}</p>}
         </section>
+
+        {user && authSession?.session_token && (
+          <section className="bg-surface-container-low rounded-xl p-6 md:p-8 editorial-shadow mb-10 border border-outline-variant/30">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-5">
+              <div>
+                <span className="font-label text-[10px] uppercase tracking-widest text-primary block mb-2">Profile Recovery</span>
+                <h2 className="font-headline text-2xl">Attach an existing result</h2>
+                <p className="font-body text-sm text-on-surface-variant mt-2 max-w-2xl">
+                  If a result opened but did not appear here, paste its result URL once. We will attach it to this verified email ID.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+              <input
+                value={recoveryInput}
+                onChange={(event) => setRecoveryInput(event.target.value)}
+                placeholder="Paste /results/... link or job ID"
+                className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-primary"
+              />
+              <button
+                onClick={() => handleClaimResult()}
+                disabled={Boolean(claimingJobId) || !recoveryInput.trim()}
+                className="bg-primary text-on-primary px-6 py-3 rounded-lg font-label uppercase tracking-widest text-xs disabled:opacity-40"
+              >
+                {claimingJobId ? "Recovering..." : "Recover Result"}
+              </button>
+            </div>
+            {recentJobs.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {recentJobs.slice(0, 5).map((job) => (
+                  <button
+                    key={job.job_id}
+                    onClick={() => handleClaimResult(job.job_id)}
+                    disabled={Boolean(claimingJobId)}
+                    className="rounded-full bg-surface-container-lowest px-4 py-2 font-label text-[9px] uppercase tracking-widest text-on-surface-variant hover:text-primary disabled:opacity-40"
+                  >
+                    Recover {job.profile_name || job.job_id.slice(0, 8)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-10">
           <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/30">

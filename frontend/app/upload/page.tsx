@@ -9,6 +9,7 @@ import {
   CostPolicy,
   getCostPolicy,
   getStoredAuth,
+  rememberRecentJob,
   requestOtp,
   storeAuth,
   UserIdentity,
@@ -219,6 +220,7 @@ export default function UploadPage() {
       );
 
       try {
+        const savedProfileName = result.profile_name || profileName.trim() || auth.user.display_name;
         sessionStorage.setItem(
           `aurafit:${result.job_id}`,
           JSON.stringify({
@@ -227,11 +229,16 @@ export default function UploadPage() {
             recommendations: result.recommendations,
             fitProfile: result.fit_profile,
             user: result.user || auth.user,
-            profileName: result.profile_name || profileName.trim() || auth.user.display_name,
+            profileName: savedProfileName,
             preferredVisualAnalysisKind: visualAnalysisKind,
             visualAnalysis: null,
           })
         );
+        rememberRecentJob({
+          job_id: result.job_id,
+          status: result.status || "queued",
+          profile_name: savedProfileName,
+        });
       } catch {
         // Ignore storage issues and fall back to API-based loading.
       }

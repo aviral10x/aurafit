@@ -262,6 +262,14 @@ export interface UsageLedgerPayload {
 // --- API Functions ---
 
 export const AUTH_STORAGE_KEY = "aurafit:auth";
+export const RECENT_JOBS_STORAGE_KEY = "aurafit:recent_jobs";
+
+export interface RecentJobSummary {
+  job_id: string;
+  status?: string | null;
+  profile_name?: string | null;
+  created_at?: string | null;
+}
 
 export function getStoredAuth(): AuthPayload | null {
   if (typeof window === "undefined") return null;
@@ -284,6 +292,35 @@ export function clearStoredAuth() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem("aurafit:user");
+}
+
+export function rememberRecentJob(job: RecentJobSummary) {
+  if (typeof window === "undefined" || !job.job_id) return;
+  try {
+    const existing = getRecentJobs();
+    const next = [
+      {
+        ...job,
+        created_at: job.created_at || new Date().toISOString(),
+      },
+      ...existing.filter((item) => item.job_id !== job.job_id),
+    ].slice(0, 10);
+    localStorage.setItem(RECENT_JOBS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Browser recovery is best-effort; the backend remains the source of truth.
+  }
+}
+
+export function getRecentJobs(): RecentJobSummary[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(RECENT_JOBS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as RecentJobSummary[];
+    return Array.isArray(parsed) ? parsed.filter((job) => Boolean(job.job_id)) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function apiErrorMessage(error: unknown, fallback: string): string {

@@ -15,6 +15,7 @@ import {
   getStoredAuth,
   OutfitRecommendation,
   ProductMatch,
+  rememberRecentJob,
   requestOtp,
   storeAuth,
   StyleProfile,
@@ -61,6 +62,7 @@ export default function ResultsPage({
   const [otpRequested, setOtpRequested] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
   const [claiming, setClaiming] = useState(false);
+  const [autoClaimAttempted, setAutoClaimAttempted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
@@ -96,6 +98,11 @@ export default function ResultsPage({
           if (parsed.user) {
             localStorage.setItem("aurafit:user", JSON.stringify(parsed.user));
           }
+          rememberRecentJob({
+            job_id: jobId,
+            status: parsed.profile ? "complete" : parsed.profileName ? "processing" : undefined,
+            profile_name: parsed.profileName || parsed.user?.display_name || null,
+          });
           setLoading(false);
           hydratedFromStorage = true;
         }
@@ -118,6 +125,11 @@ export default function ResultsPage({
           if (data.user) {
             localStorage.setItem("aurafit:user", JSON.stringify(data.user));
           }
+          rememberRecentJob({
+            job_id: jobId,
+            status: data.status,
+            profile_name: data.profile_name || data.user?.display_name || null,
+          });
           setLoading(false);
 
           try {
@@ -208,6 +220,40 @@ export default function ResultsPage({
       .then(setUsage)
       .catch(() => setUsage(null));
   }, [authSession, jobId, visualAnalysis]);
+
+  useEffect(() => {
+    if (!profile || !authSession?.session_token || owner || autoClaimAttempted || claiming) return;
+
+    let cancelled = false;
+    const auth = authSession;
+    async function autoSaveToAccount() {
+      const name = profileName.trim() || auth.user.display_name;
+      setAutoClaimAttempted(true);
+      setClaiming(true);
+      try {
+        const claimed = await claimSession(jobId, auth.user.id, name, auth.session_token);
+        if (cancelled) return;
+        setOwner(claimed.user);
+        setProfileName(claimed.profile_name);
+        storeAuth(auth);
+        rememberRecentJob({
+          job_id: jobId,
+          status: "complete",
+          profile_name: claimed.profile_name,
+        });
+        setAuthMessage("Saved to your AuraFit ID.");
+      } catch {
+        if (!cancelled) setAutoClaimAttempted(true);
+      } finally {
+        if (!cancelled) setClaiming(false);
+      }
+    }
+
+    autoSaveToAccount();
+    return () => {
+      cancelled = true;
+    };
+  }, [authSession, autoClaimAttempted, claiming, jobId, owner, profile, profileName]);
 
   const tabs = [
     { key: "overview", label: "Overview" },
