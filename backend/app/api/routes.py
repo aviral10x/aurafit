@@ -117,6 +117,16 @@ def _normalize_email(email: str) -> str:
     return normalized
 
 
+def _require_persistent_database(db: AsyncSession | None):
+    if settings.mock_mode:
+        return
+    if db is None or not is_db_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Persistent database is unavailable. Fix DATABASE_URL before login or analysis can run.",
+        )
+
+
 def _hash_secret(value: str) -> str:
     payload = f"{settings.auth_token_secret}:{value}".encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
@@ -457,6 +467,7 @@ def _build_fit_profile(
 
 @router.post("/auth/otp/request", response_model=OtpRequestResponse)
 async def request_login_otp(payload: OtpRequest, db: AsyncSession = Depends(get_db)):
+    _require_persistent_database(db)
     email = _normalize_email(payload.email)
     display_name = (payload.display_name or "").strip() or None
     now = datetime.now(timezone.utc)
@@ -529,6 +540,7 @@ async def verify_login_otp(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
+    _require_persistent_database(db)
     email = _normalize_email(payload.email)
     code = re.sub(r"\D", "", payload.otp_code or "")
     if len(code) != 6:
@@ -619,6 +631,7 @@ async def exchange_supabase_session(
     authorization: str | None = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
+    _require_persistent_database(db)
     access_token = _extract_bearer_token(authorization)
     if not access_token:
         raise HTTPException(status_code=401, detail="Supabase session is required")
@@ -663,6 +676,7 @@ async def logout_user(
 
 @router.post("/auth/login", response_model=AuthResponse)
 async def login_user(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    _require_persistent_database(db)
     display_name = payload.display_name.strip()
     email = payload.email.strip().lower() if payload.email else None
     if not display_name:
@@ -723,6 +737,7 @@ async def claim_session(
     authorization: str | None = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
+    _require_persistent_database(db)
     profile_name = (payload.profile_name or "").strip()
 
     try:
@@ -1166,6 +1181,7 @@ async def analyze(
     authorization: str | None = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
+    _require_persistent_database(db)
     if len(photos) < 1:
         raise HTTPException(status_code=400, detail="Upload at least 1 photo")
     if len(photos) > 10:
