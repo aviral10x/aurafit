@@ -6,8 +6,10 @@ import {
   analyzePhotos,
   apiErrorMessage,
   AuthPayload,
+  clearStoredAuth,
   CostPolicy,
   getCostPolicy,
+  getMe,
   getStoredAuth,
   rememberRecentJob,
   requestOtp,
@@ -100,25 +102,43 @@ export default function UploadPage() {
   const [costPolicy, setCostPolicy] = useState<CostPolicy | null>(null);
 
   useEffect(() => {
-    try {
-      const auth = getStoredAuth();
-      if (auth?.user) {
-        setAuthSession(auth);
-        setCurrentUser(auth.user);
-        setProfileName(auth.user.display_name || "");
-        setAuthEmail(auth.user.email || "");
-        return;
+    let cancelled = false;
+
+    async function hydrateAuth() {
+      try {
+        const auth = getStoredAuth();
+        if (auth?.user && auth.session_token) {
+          const refreshedAuth = await getMe(auth.session_token);
+          const activeAuth = {
+            ...auth,
+            user: refreshedAuth.user,
+          };
+          if (cancelled) return;
+          storeAuth(activeAuth);
+          setAuthSession(activeAuth);
+          setCurrentUser(activeAuth.user);
+          setProfileName(activeAuth.user.display_name || "");
+          setAuthEmail(activeAuth.user.email || "");
+          return;
+        }
+        const stored = localStorage.getItem("aurafit:user");
+        if (stored) {
+          const user = JSON.parse(stored) as UserIdentity;
+          if (cancelled) return;
+          setCurrentUser(user);
+          setProfileName(user.display_name || "");
+          setAuthEmail(user.email || "");
+        }
+      } catch {
+        clearStoredAuth();
+        // Ignore bad local identity data.
       }
-      const stored = localStorage.getItem("aurafit:user");
-      if (stored) {
-        const user = JSON.parse(stored) as UserIdentity;
-        setCurrentUser(user);
-        setProfileName(user.display_name || "");
-        setAuthEmail(user.email || "");
-      }
-    } catch {
-      // Ignore bad local identity data.
     }
+
+    hydrateAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

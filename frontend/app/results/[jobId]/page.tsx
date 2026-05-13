@@ -6,10 +6,12 @@ import {
   apiErrorMessage,
   AuthPayload,
   claimSession,
+  clearStoredAuth,
   createSessionVisualAnalysis,
   FitProfile,
   getApiAssetUrl,
   getJobUsage,
+  getMe,
   getProductRecommendations,
   getProfile,
   getStoredAuth,
@@ -171,23 +173,40 @@ export default function ResultsPage({
   }, [jobId]);
 
   useEffect(() => {
-    try {
-      const auth = getStoredAuth();
-      if (auth?.user) {
-        setAuthSession(auth);
-        setAuthEmail(auth.user.email || "");
-        if (!profileName) setProfileName(auth.user.display_name || "");
-        return;
-      }
+    let cancelled = false;
 
-      if (owner || profileName) return;
-      const stored = localStorage.getItem("aurafit:user");
-      if (!stored) return;
-      const user = JSON.parse(stored) as UserIdentity;
-      setProfileName(user.display_name || "");
-    } catch {
-      // Ignore bad local identity data.
+    async function hydrateAuth() {
+      try {
+        const auth = getStoredAuth();
+        if (auth?.user && auth.session_token) {
+          const refreshedAuth = await getMe(auth.session_token);
+          const activeAuth = {
+            ...auth,
+            user: refreshedAuth.user,
+          };
+          if (cancelled) return;
+          storeAuth(activeAuth);
+          setAuthSession(activeAuth);
+          setAuthEmail(activeAuth.user.email || "");
+          if (!profileName) setProfileName(activeAuth.user.display_name || "");
+          return;
+        }
+
+        if (owner || profileName) return;
+        const stored = localStorage.getItem("aurafit:user");
+        if (!stored) return;
+        const user = JSON.parse(stored) as UserIdentity;
+        if (!cancelled) setProfileName(user.display_name || "");
+      } catch {
+        clearStoredAuth();
+        // Ignore bad local identity data.
+      }
     }
+
+    hydrateAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [owner, profileName]);
 
   useEffect(() => {

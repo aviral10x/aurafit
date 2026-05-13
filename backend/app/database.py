@@ -56,6 +56,21 @@ async def init_db():
         await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE"))
         await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS last_error_at TIMESTAMP WITH TIME ZONE"))
         await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE"))
+        await conn.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
+        await conn.execute(text(
+            "ALTER TABLE sessions ADD CONSTRAINT sessions_user_id_fkey "
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+        ))
+        await conn.execute(text("ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS analysis_jobs_user_id_fkey"))
+        await conn.execute(text(
+            "ALTER TABLE analysis_jobs ADD CONSTRAINT analysis_jobs_user_id_fkey "
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+        ))
+        await conn.execute(text("ALTER TABLE ai_usage_ledger DROP CONSTRAINT IF EXISTS ai_usage_ledger_user_id_fkey"))
+        await conn.execute(text(
+            "ALTER TABLE ai_usage_ledger ADD CONSTRAINT ai_usage_ledger_user_id_fkey "
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+        ))
     _db_available = True
 
 

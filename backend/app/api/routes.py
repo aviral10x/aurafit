@@ -788,13 +788,7 @@ async def claim_session(
     )
 
 
-@router.get("/users/{user_id}/sessions", response_model=UserSessionsResponse)
-async def get_user_sessions(user_id: str, db: AsyncSession = Depends(get_db)):
-    try:
-        user_uuid = uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
+async def _user_sessions_response(user_uuid: uuid.UUID, db: AsyncSession | None) -> UserSessionsResponse:
     if db is None or not is_db_available():
         user_data = _memory_users.get(str(user_uuid))
         if not user_data:
@@ -847,11 +841,35 @@ async def get_user_sessions(user_id: str, db: AsyncSession = Depends(get_db)):
     return UserSessionsResponse(user=_user_payload(user), sessions=summaries)
 
 
+@router.get("/auth/sessions", response_model=UserSessionsResponse)
+async def get_authenticated_user_sessions(
+    authorization: str | None = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    token_user = await _get_user_by_auth_token(_extract_bearer_token(authorization), db)
+    if not token_user:
+        raise HTTPException(status_code=401, detail="Sign in to view saved profiles")
+
+    user_id = token_user["id"] if isinstance(token_user, dict) else str(token_user.id)
+    return await _user_sessions_response(uuid.UUID(user_id), db)
+
+
+@router.get("/users/{user_id}/sessions", response_model=UserSessionsResponse)
+async def get_user_sessions(user_id: str, db: AsyncSession = Depends(get_db)):
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    return await _user_sessions_response(user_uuid, db)
+
+
 @router.get("/health")
 async def health():
     return {
         "status": "ok",
         "mock_mode": settings.mock_mode,
+        "database_available": is_db_available(),
         "cost_tracking_enabled": settings.cost_tracking_enabled,
         "ai_providers": {
             "openrouter": is_secret_configured(settings.openrouter_api_key),

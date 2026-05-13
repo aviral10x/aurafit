@@ -448,6 +448,16 @@ export async function getUserSessions(userId: string): Promise<{
   return data;
 }
 
+export async function getAuthenticatedUserSessions(sessionToken: string): Promise<{
+  user: UserIdentity;
+  sessions: UserSessionSummary[];
+}> {
+  const { data } = await api.get("/auth/sessions", {
+    headers: authHeaders(sessionToken),
+  });
+  return data;
+}
+
 export async function getProfile(jobId: string): Promise<{
   status: string;
   profile?: StyleProfile;

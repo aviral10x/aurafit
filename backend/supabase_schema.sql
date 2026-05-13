@@ -7,11 +7,50 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================
+-- BACKEND USERS
+-- AuraFit uses its own backend OTP/session model. Do not point
+-- analysis ownership at auth.users unless the API is rewritten for
+-- native Supabase Auth end-to-end.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.users (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username          TEXT NOT NULL UNIQUE,
+  display_name      TEXT NOT NULL,
+  email             TEXT UNIQUE,
+  email_verified_at TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.auth_otps (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email       TEXT NOT NULL,
+  display_name TEXT,
+  code_hash   TEXT NOT NULL,
+  purpose     TEXT NOT NULL DEFAULT 'login',
+  attempts    INT NOT NULL DEFAULT 0,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.auth_sessions (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  token_hash   TEXT NOT NULL UNIQUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at   TIMESTAMPTZ NOT NULL,
+  revoked_at   TIMESTAMPTZ
+);
+
+-- ============================================================
 -- SESSIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.sessions (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_id      UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  profile_name TEXT,
   gender       TEXT NOT NULL DEFAULT 'men',
   age_range    TEXT,
   occasion     TEXT[],
@@ -20,6 +59,13 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   budget_max   FLOAT NOT NULL DEFAULT 300,
   style_preferences TEXT[],
   wear_type    TEXT NOT NULL DEFAULT 'all',
+  height_cm    FLOAT,
+  weight_kg    FLOAT,
+  shirt_size   TEXT,
+  bottom_size  TEXT,
+  shoe_size    TEXT,
+  preferred_fit TEXT,
+  pincode      TEXT,
   status       TEXT NOT NULL DEFAULT 'pending',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -97,7 +143,7 @@ CREATE TABLE IF NOT EXISTS public.recommendations (
 CREATE TABLE IF NOT EXISTS public.cost_logs (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id   UUID REFERENCES public.sessions(id) ON DELETE SET NULL,
-  user_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_id      UUID REFERENCES public.users(id) ON DELETE SET NULL,
   ip_address   TEXT,
   model_name   TEXT NOT NULL,
   input_tokens  INT NOT NULL DEFAULT 0,

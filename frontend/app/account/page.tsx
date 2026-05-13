@@ -9,10 +9,13 @@ import {
   AuthPayload,
   CatalogStatus,
   claimSession,
+  clearStoredAuth,
   CostPolicy,
   exchangeSupabaseSession,
+  getAuthenticatedUserSessions,
   getCatalogStatus,
   getCostPolicy,
+  getMe,
   getRecentJobs,
   getStoredAuth,
   getUserSessions,
@@ -88,16 +91,22 @@ export default function AccountPage() {
     async function hydrateAccount() {
       try {
         const auth = getStoredAuth();
-        if (auth?.user) {
+        if (auth?.user && auth.session_token) {
+          const refreshedAuth = await getMe(auth.session_token);
+          const activeAuth = {
+            ...auth,
+            user: refreshedAuth.user,
+          };
           if (cancelled) return;
-          setAuthSession(auth);
-          setUser(auth.user);
-          setName(auth.user.display_name);
-          setEmail(auth.user.email || "");
+          storeAuth(activeAuth);
+          setAuthSession(activeAuth);
+          setUser(activeAuth.user);
+          setName(activeAuth.user.display_name);
+          setEmail(activeAuth.user.email || "");
           const browserJobs = getRecentJobs();
           setRecentJobs(browserJobs);
-          await claimRecentBrowserJobs(auth, browserJobs);
-          await loadSessions(auth.user.id, auth.session_token);
+          await claimRecentBrowserJobs(activeAuth, browserJobs);
+          await loadSessions(activeAuth.user.id, activeAuth.session_token);
           return;
         }
 
@@ -131,6 +140,7 @@ export default function AccountPage() {
         setRecentJobs(getRecentJobs());
         await loadSessions(storedUser.id);
       } catch {
+        clearStoredAuth();
         // Ignore bad local identity data and let the user sign in with OTP.
       }
     }
@@ -153,7 +163,9 @@ export default function AccountPage() {
     setError("");
     setUsageError("");
     try {
-      const data = await getUserSessions(userId);
+      const data = sessionToken
+        ? await getAuthenticatedUserSessions(sessionToken)
+        : await getUserSessions(userId);
       setUser(data.user);
       setSessions(data.sessions);
       if (sessionToken) {
