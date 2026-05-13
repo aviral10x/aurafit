@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 
 from app.config import is_secret_configured, settings
-from app.database import get_db
+from app.database import get_db, get_db_error
 from app.models.db import (
     UserModel,
     AuthOtpModel,
@@ -870,6 +870,7 @@ async def health():
         "status": "ok",
         "mock_mode": settings.mock_mode,
         "database_available": is_db_available(),
+        "database_error": get_db_error(),
         "cost_tracking_enabled": settings.cost_tracking_enabled,
         "ai_providers": {
             "openrouter": is_secret_configured(settings.openrouter_api_key),

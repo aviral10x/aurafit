@@ -10,6 +10,7 @@ from app.config import settings
 from app.models.db import Base
 
 _db_available = False
+_db_error: str | None = None
 
 _is_supabase_pooler = "pooler.supabase.com" in settings.database_url
 _connect_args = {}
@@ -35,52 +36,63 @@ except Exception:
 
 
 async def init_db():
-    global _db_available
+    global _db_available, _db_error
     if engine is None:
+        _db_error = "Database engine was not initialized"
         return
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id UUID"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_name VARCHAR(120)"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS height_cm FLOAT"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS weight_kg FLOAT"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS shirt_size VARCHAR(20)"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS bottom_size VARCHAR(20)"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS shoe_size VARCHAR(20)"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS preferred_fit VARCHAR(20)"))
-        await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS pincode VARCHAR(12)"))
-        await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_provider VARCHAR(40)"))
-        await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_bucket VARCHAR(120)"))
-        await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_path VARCHAR(700)"))
-        await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS content_type VARCHAR(120)"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS error_message TEXT"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 3"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP WITH TIME ZONE"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS last_error_at TIMESTAMP WITH TIME ZONE"))
-        await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE"))
-        await conn.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
-        await conn.execute(text(
-            "ALTER TABLE sessions ADD CONSTRAINT sessions_user_id_fkey "
-            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
-        ))
-        await conn.execute(text("ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS analysis_jobs_user_id_fkey"))
-        await conn.execute(text(
-            "ALTER TABLE analysis_jobs ADD CONSTRAINT analysis_jobs_user_id_fkey "
-            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
-        ))
-        await conn.execute(text("ALTER TABLE ai_usage_ledger DROP CONSTRAINT IF EXISTS ai_usage_ledger_user_id_fkey"))
-        await conn.execute(text(
-            "ALTER TABLE ai_usage_ledger ADD CONSTRAINT ai_usage_ledger_user_id_fkey "
-            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
-        ))
-    _db_available = True
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id UUID"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_name VARCHAR(120)"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS height_cm FLOAT"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS weight_kg FLOAT"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS shirt_size VARCHAR(20)"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS bottom_size VARCHAR(20)"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS shoe_size VARCHAR(20)"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS preferred_fit VARCHAR(20)"))
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS pincode VARCHAR(12)"))
+            await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_provider VARCHAR(40)"))
+            await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_bucket VARCHAR(120)"))
+            await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS storage_path VARCHAR(700)"))
+            await conn.execute(text("ALTER TABLE photos ADD COLUMN IF NOT EXISTS content_type VARCHAR(120)"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS error_message TEXT"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 3"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP WITH TIME ZONE"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS last_error_at TIMESTAMP WITH TIME ZONE"))
+            await conn.execute(text("ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE"))
+            await conn.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
+            await conn.execute(text(
+                "ALTER TABLE sessions ADD CONSTRAINT sessions_user_id_fkey "
+                "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+            ))
+            await conn.execute(text("ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS analysis_jobs_user_id_fkey"))
+            await conn.execute(text(
+                "ALTER TABLE analysis_jobs ADD CONSTRAINT analysis_jobs_user_id_fkey "
+                "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+            ))
+            await conn.execute(text("ALTER TABLE ai_usage_ledger DROP CONSTRAINT IF EXISTS ai_usage_ledger_user_id_fkey"))
+            await conn.execute(text(
+                "ALTER TABLE ai_usage_ledger ADD CONSTRAINT ai_usage_ledger_user_id_fkey "
+                "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID"
+            ))
+        _db_available = True
+        _db_error = None
+    except Exception as exc:
+        _db_available = False
+        _db_error = f"{type(exc).__name__}: {exc}"
+        raise
 
 
 def is_db_available() -> bool:
     return _db_available
+
+
+def get_db_error() -> str | None:
+    return _db_error
 
 
 async def get_db() -> AsyncSession:
