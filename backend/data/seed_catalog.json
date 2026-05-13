@@ -1,0 +1,137 @@
+[
+  {
+    "id": "prod-001", "brand": "Zara", "title": "Relaxed Linen Shirt in Natural",
+    "price_usd": 45.90, "category": "Tops", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=500&fit=crop",
+    "buy_url": "https://www.zara.com/in/", "colors": ["beige", "off-white"],
+    "occasion": ["casual", "brunch"], "best_for_undertone": ["warm", "neutral"],
+    "best_for_season": ["autumn_warm", "autumn_soft", "spring_warm"],
+    "best_for_body": ["inverted-triangle", "rectangle"]
+  },
+  {
+    "id": "prod-002", "brand": "H&M", "title": "Wide Leg Chinos in Olive",
+    "price_usd": 35.99, "category": "Bottoms", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop",
+    "buy_url": "https://www.hm.com/in/", "colors": ["olive", "green"],
+    "occasion": ["casual", "travel"], "best_for_undertone": ["warm"],
+    "best_for_season": ["autumn_warm", "autumn_deep", "autumn_soft"],
+    "best_for_body": ["inverted-triangle", "hourglass"]
+  },
+  {
+    "id": "prod-003", "brand": "Zara", "title": "Suede Low-Top Sneakers in Sand",
+    "price_usd": 59.90, "category": "Footwear", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400&h=500&fit=crop",
+    "buy_url": "https://www.zara.com/in/", "colors": ["sand", "beige"],
+    "occasion": ["casual", "travel", "brunch"], "best_for_undertone": ["warm", "neutral"],
+    "best_for_season": ["autumn_warm", "autumn_soft", "spring_warm", "summer_soft"],
+    "best_for_body": ["rectangle", "inverted-triangle", "triangle", "hourglass"]
+  },
+  {
+    "id": "prod-004", "brand": "Uniqlo", "title": "Slim Fit Oxford Shirt in White",
+    "price_usd": 34.90, "category": "Tops", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400&h=500&fit=crop",
+    "buy_url": "https://www.uniqlo.com/in/", "colors": ["white", "off-white"],
+    "occasion": ["office", "smart-casual"], "best_for_undertone": ["cool", "neutral"],
+    "best_for_season": ["winter_cool", "winter_clear", "summer_cool"],
+    "best_for_body": ["rectangle", "inverted-triangle"]
+  },
+  {
+    "id": "prod-005", "brand": "Zara", "title": "Unstructured Knit Blazer in Camel",
+    "price_usd": 89.90, "category": "Outerwear", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&h=500&fit=crop",
+    "buy_url": "https://www.zara.com/in/", "colors": ["camel", "tan"],
+    "occasion": ["office", "smart-casual", "date-night"], "best_for_undertone": ["warm"],
+    "best_for_season": ["autumn_warm", "autumn_deep", "autumn_soft"],
+    "best_for_body": ["rectangle", "triangle"]
+  },
+  {
+    "id": "prod-006", "brand": "FabIndia", "title": "Silk Blend Kurta in Rust",
+    "price_usd": 65.00, "category": "Kurta", "sub_category": "indian", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=500&fit=crop",
+    "buy_url": "https://www.fabindia.com/", "colors": ["rust", "orange"],
+    "occasion": ["festive", "wedding"], "best_for_undertone": ["warm", "olive"],
+    "best_for_season": ["autumn_warm", "autumn_deep"],
+    "best_for_body": ["rectangle", "inverted-triangle", "triangle"]
+  },
+  {
+    "id": "prod-007", "brand": "COS", "title": "Minimal Rose Gold Watch",
+    "price_usd": 59.90, "category": "Accessories", "sub_category": "general", "gender": "all",
+    "image_url": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=500&fit=crop",
+    "buy_url": "https://www.cosstores.com/", "colors": ["gold", "rose-gold"],
+    "occasion": ["office", "smart-casual", "date-night"], "best_for_undertone": ["warm"],
+    "best_for_season": ["autumn_warm", "autumn_soft", "spring_warm"],
+    "best_for_body": ["rectangle", "inverted-triangle", "triangle", "hourglass"]
+  },
+  {
+    "id": "prod-008", "brand": "ASOS", "title": "Leather Chelsea Boots in Dark Brown",
+    "price_usd": 89.99, "category": "Footwear", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=400&h=500&fit=crop",
+    "buy_url": "https://www.asos.com/in/", "colors": ["dark-brown", "chocolate"],
+    "occasion": ["office", "smart-casual", "date-night"], "best_for_undertone": ["warm", "neutral"],
+    "best_for_season": ["autumn_warm", "autumn_deep", "winter_deep"],
+    "best_for_body": ["rectangle", "inverted-triangle", "triangle"]
+  },
+  {
+    "id": "prod-009", "brand": "H&M", "title": "Oversized Cotton Tee in Ecru",
+    "price_usd": 19.99, "category": "Tops", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop",
+    "buy_url": "https://www.hm.com/in/", "colors": ["ecru", "cream"],
+    "occasion": ["casual", "travel"], "best_for_undertone": ["warm", "neutral", "olive"],
+    "best_for_season": ["autumn_warm", "autumn_soft", "spring_warm", "summer_soft"],
+    "best_for_body": ["triangle", "rectangle"]
+  },
+  {
+    "id": "prod-010", "brand": "Mango", "title": "Tailored Blazer in Navy",
+    "price_usd": 79.90, "category": "Outerwear", "sub_category": "western", "gender": "men",
+    "image_url": "https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=500&fit=crop",
+    "buy_url": "https://www.mango.com/in/", "colors": ["navy", "dark-blue"],
+    "occasion": ["office", "smart-casual", "date-night"], "best_for_undertone": ["cool"],
+    "best_for_season": ["winter_cool", "winter_clear", "summer_cool"],
+    "best_for_body": ["rectangle", "triangle"]
+  },
+  {
+    "id": "prod-011", "brand": "W for Woman", "title": "Floral Print Wrap Dress",
+    "price_usd": 55.00, "category": "Dress", "sub_category": "western", "gender": "women",
+    "image_url": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&h=500&fit=crop",
+    "buy_url": "https://www.wforwoman.com/", "colors": ["floral", "multicolor"],
+    "occasion": ["casual", "brunch", "date-night"], "best_for_undertone": ["warm", "neutral"],
+    "best_for_season": ["spring_warm", "spring_clear", "autumn_soft"],
+    "best_for_body": ["hourglass", "triangle", "pear"]
+  },
+  {
+    "id": "prod-012", "brand": "FabIndia", "title": "Cotton Salwar Kameez in Teal",
+    "price_usd": 45.00, "category": "Salwar Kameez", "sub_category": "indian", "gender": "women",
+    "image_url": "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
+    "buy_url": "https://www.fabindia.com/", "colors": ["teal", "blue-green"],
+    "occasion": ["casual", "festive"], "best_for_undertone": ["cool", "neutral"],
+    "best_for_season": ["summer_cool", "winter_cool", "spring_clear"],
+    "best_for_body": ["hourglass", "triangle", "rectangle"]
+  },
+  {
+    "id": "prod-013", "brand": "Zara", "title": "High Waist Straight Jeans",
+    "price_usd": 49.90, "category": "Bottoms", "sub_category": "western", "gender": "women",
+    "image_url": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=500&fit=crop",
+    "buy_url": "https://www.zara.com/in/", "colors": ["blue", "denim"],
+    "occasion": ["casual", "travel", "brunch"], "best_for_undertone": ["cool", "neutral", "warm"],
+    "best_for_season": ["winter_cool", "summer_cool", "autumn_soft"],
+    "best_for_body": ["pear", "hourglass", "inverted-triangle"]
+  },
+  {
+    "id": "prod-014", "brand": "Mango", "title": "Linen Blend Blazer in Ecru",
+    "price_usd": 69.90, "category": "Outerwear", "sub_category": "western", "gender": "women",
+    "image_url": "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=400&h=500&fit=crop",
+    "buy_url": "https://www.mango.com/in/", "colors": ["ecru", "cream"],
+    "occasion": ["office", "smart-casual"], "best_for_undertone": ["warm", "neutral"],
+    "best_for_season": ["spring_warm", "summer_soft", "autumn_soft"],
+    "best_for_body": ["rectangle", "inverted-triangle"]
+  },
+  {
+    "id": "prod-015", "brand": "H&M", "title": "Pleated Midi Skirt in Terracotta",
+    "price_usd": 39.99, "category": "Bottoms", "sub_category": "western", "gender": "women",
+    "image_url": "https://images.unsplash.com/photo-1590470492104-ab381ee3fc79?w=400&h=500&fit=crop",
+    "buy_url": "https://www.hm.com/in/", "colors": ["terracotta", "rust"],
+    "occasion": ["casual", "date-night", "brunch"], "best_for_undertone": ["warm", "olive"],
+    "best_for_season": ["autumn_warm", "autumn_deep", "spring_warm"],
+    "best_for_body": ["hourglass", "rectangle", "inverted-triangle"]
+  }
+]

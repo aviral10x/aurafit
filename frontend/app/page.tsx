@@ -26,7 +26,7 @@ export default function Home() {
                   Get My Style Profile
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
-                <Link href="/#process" className="group px-8 py-4 rounded-md font-label uppercase tracking-widest text-sm border border-primary text-primary hover:bg-primary/5 transition-all">
+                <Link href="/#how-it-works" className="group px-8 py-4 rounded-md font-label uppercase tracking-widest text-sm border border-primary text-primary hover:bg-primary/5 transition-all">
                   See How It Works
                   <div className="h-[2px] w-0 group-hover:w-full bg-primary transition-all duration-300 mt-1"></div>
                 </Link>
@@ -62,10 +62,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Social Proof Strip */}
+        {/* Trust Strip */}
         <section className="py-10 bg-surface-container-low border-y border-outline-variant/10">
-          <div className="max-w-7xl mx-auto px-8 flex flex-wrap justify-between items-center gap-8 opacity-70 grayscale">
+          <div className="max-w-7xl mx-auto px-8 flex flex-wrap justify-between items-center gap-8 opacity-70">
             <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-sm">mail</span>
               <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Email-saved personal profiles</span>
             </div>
             <div className="flex items-center gap-3">
@@ -73,13 +74,19 @@ export default function Home() {
               <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Credit-guarded AI analysis</span>
             </div>
             <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-sm">lock</span>
+              <span className="font-label text-xs uppercase tracking-[0.2em] font-bold">Private photo handling</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-sm">shopping_bag</span>
               <span className="font-label text-xs uppercase tracking-[0.2em] font-bold italic">Marketplace-aware recommendations</span>
             </div>
           </div>
         </section>
 
+
         {/* How It Works */}
-        <section id="process" className="py-32 bg-surface scroll-mt-24">
+        <section id="how-it-works" className="py-32 bg-surface scroll-mt-24">
           <div className="max-w-7xl mx-auto px-8">
             <div className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="max-w-2xl">

@@ -51,7 +51,7 @@ export default function OutfitCard({ outfit }: OutfitCardProps) {
 
       {/* Content */}
       <div className="p-5 flex flex-col flex-1">
-        <h3 className="font-heading text-lg text-charcoal mb-1">
+        <h3 className="font-headline text-lg text-charcoal mb-1">
           {outfit.name}
         </h3>
         <p className="font-body text-sm italic text-charcoal/60 mb-4 leading-relaxed">
@@ -94,7 +94,7 @@ export default function OutfitCard({ outfit }: OutfitCardProps) {
           <span className="font-body text-xs uppercase tracking-widest text-charcoal/50">
             Total
           </span>
-          <span className="font-heading text-lg text-charcoal">
+          <span className="font-headline text-lg text-charcoal">
             ${outfit.total_price_usd}
           </span>
         </div>

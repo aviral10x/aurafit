@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "tailwindcss";
 
 @theme inline {
@@ -50,6 +49,13 @@
   --color-surface-tint: #755b00;
   --color-on-error: #ffffff;
   --color-surface-variant: #e5e2e1;
+
+  /* Legacy aliases for component compatibility */
+  --color-charcoal: #1c1b1b;
+  --color-cream: #fcf9f8;
+  --color-cream-dark: #eae7e7;
+  --color-gold: #755b00;
+  --color-sage: #49663c;
 
   /* Font families */
   --font-headline: "Playfair Display", "Noto Serif", Georgia, serif;
@@ -143,4 +149,13 @@ input[type="range"]::-webkit-slider-runnable-track {
   cursor: pointer;
   background: #d0c5b2;
   border-radius: 2px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

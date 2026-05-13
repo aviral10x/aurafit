@@ -7,6 +7,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Header, BackgroundTasks
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -257,6 +258,53 @@ async def _find_or_create_user_by_email(
         user.last_seen_at = now
 
     return user
+
+
+async def _auth_response_for_user(
+    user: UserModel | dict,
+    response: Response,
+    db: AsyncSession | None,
+) -> AuthResponse:
+    session_token, expires_at = await _create_auth_session(user, db)
+    if db is not None and is_db_available():
+        await db.commit()
+        if not isinstance(user, dict):
+            await db.refresh(user)
+
+    response.set_cookie(
+        key="aurafit_session",
+        value=session_token,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",
+        max_age=settings.auth_session_ttl_days * 24 * 60 * 60,
+    )
+    user_profile = UserProfile(**user) if isinstance(user, dict) else _user_payload(user)
+    return AuthResponse(
+        status="complete",
+        user=user_profile,
+        session_token=session_token,
+        expires_at=expires_at,
+    )
+
+
+async def _fetch_supabase_user(access_token: str) -> dict:
+    if not is_secret_configured(settings.supabase_url) or not is_secret_configured(settings.supabase_service_role_key):
+        raise HTTPException(status_code=503, detail="Supabase auth exchange is not configured")
+
+    url = f"{settings.supabase_url.rstrip('/')}/auth/v1/user"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "apikey": settings.supabase_service_role_key,
+    }
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(url, headers=headers)
+
+    if response.status_code in {401, 403}:
+        raise HTTPException(status_code=401, detail="Supabase session expired. Please sign in again.")
+    if response.status_code >= 400:
+        raise HTTPException(status_code=503, detail="Could not verify Supabase session")
+    return response.json()
 
 
 async def _enforce_analysis_quota(
@@ -563,6 +611,29 @@ async def get_current_user(
     if isinstance(user, dict):
         return AuthResponse(status="complete", user=UserProfile(**user))
     return AuthResponse(status="complete", user=_user_payload(user))
+
+
+@router.post("/auth/supabase/exchange", response_model=AuthResponse)
+async def exchange_supabase_session(
+    response: Response,
+    authorization: str | None = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    access_token = _extract_bearer_token(authorization)
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Supabase session is required")
+
+    supabase_user = await _fetch_supabase_user(access_token)
+    email = _normalize_email(supabase_user.get("email") or "")
+    metadata = supabase_user.get("user_metadata") or supabase_user.get("raw_user_meta_data") or {}
+    display_name = (
+        metadata.get("full_name")
+        or metadata.get("name")
+        or metadata.get("display_name")
+        or email.split("@", 1)[0].replace(".", " ").title()
+    )
+    user = await _find_or_create_user_by_email(email, display_name, db)
+    return await _auth_response_for_user(user, response, db)
 
 
 @router.post("/auth/logout")

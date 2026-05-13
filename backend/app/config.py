@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     openai_image_cost_per_image: float = 0.0
     supabase_url: str = ""
     supabase_service_role_key: str = ""
+    supabase_jwt_secret: str = ""
     supabase_storage_enabled: bool = False
     supabase_storage_bucket: str = "aurafit"
     supabase_storage_uploads_prefix: str = "uploads"

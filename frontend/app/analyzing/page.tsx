@@ -226,7 +226,7 @@ function AnalyzingContent() {
       <footer className="fixed bottom-8 w-full text-center z-10 px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center opacity-40">
           <p className="font-label text-[10px] tracking-widest text-surface-container-highest uppercase">
-            &copy; 2024 AuraFit. Powered by Claude AI
+            &copy; 2026 AuraFit. Powered by Claude AI
           </p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <span className="font-label text-[10px] tracking-widest text-surface-container-highest uppercase">Encrypted</span>

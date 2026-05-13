@@ -373,6 +373,13 @@ export async function getMe(sessionToken?: string | null): Promise<AuthPayload> 
   return data;
 }
 
+export async function exchangeSupabaseSession(accessToken: string): Promise<AuthPayload> {
+  const { data } = await api.post("/auth/supabase/exchange", null, {
+    headers: authHeaders(accessToken),
+  });
+  return data;
+}
+
 export async function logoutUser(sessionToken?: string | null): Promise<void> {
   await api.post("/auth/logout", null, {
     headers: authHeaders(sessionToken),

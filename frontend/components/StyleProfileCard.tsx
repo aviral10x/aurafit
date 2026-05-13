@@ -17,7 +17,7 @@ export default function StyleProfileCard({ profile }: StyleProfileCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <h2 className="font-heading text-2xl text-charcoal mb-6">
+      <h2 className="font-headline text-2xl text-charcoal mb-6">
         Your Style Profile
       </h2>
 

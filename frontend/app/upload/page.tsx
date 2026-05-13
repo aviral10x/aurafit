@@ -93,6 +93,8 @@ export default function UploadPage() {
   const [budgetMin] = useState(50);
   const [budgetMax] = useState(300);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
   const [isAuthWorking, setIsAuthWorking] = useState(false);
   const [costPolicy, setCostPolicy] = useState<CostPolicy | null>(null);
 
@@ -197,7 +199,7 @@ export default function UploadPage() {
         budgetMax,
         selectedStyles,
         wearType,
-        selectedOccasions.map((o) => o.toLowerCase().replace(" ", "-")),
+        selectedOccasions.map((o) => o.toLowerCase().replace(/\s+/g, "-")),
         selectedGoals.map((g) => g.toLowerCase().replace(/ /g, "-")),
         ageRange,
         {
@@ -423,10 +425,16 @@ export default function UploadPage() {
 
             {/* Drag & Drop Zone */}
             <div
-              className="border-2 border-dashed border-primary/40 bg-surface-container-low rounded-xl p-12 text-center group hover:border-primary hover:bg-surface-container transition-all cursor-pointer"
+              className={`border-2 border-dashed rounded-xl p-12 text-center group transition-all cursor-pointer ${
+                isDragging
+                  ? "border-primary bg-primary-fixed/20 scale-[1.01]"
+                  : "border-primary/40 bg-surface-container-low hover:border-primary hover:bg-surface-container"
+              }`}
               onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragging(true); }}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+              onDragLeave={(e) => { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); }}
+              onDrop={(e) => { e.preventDefault(); dragCounter.current = 0; setIsDragging(false); handleFiles(e.dataTransfer.files); }}
             >
               <input
                 ref={fileInputRef}
@@ -480,6 +488,25 @@ export default function UploadPage() {
                 <div className="h-full bg-primary transition-all duration-700" style={{ width: `${Math.min(100, (photos.length / recommendedPhotos) * 100)}%` }}></div>
               </div>
             </div>
+
+            {/* Trust Strip */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3 pt-2">
+              {[
+                { icon: "lock", text: "Encrypted in transit & at rest" },
+                { icon: "no_photography", text: "Never used to train AI" },
+                { icon: "auto_delete", text: "Auto-deleted after 30 days" },
+              ].map(({ icon, text }) => (
+                <div key={icon} className="flex items-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[16px] text-outline">{icon}</span>
+                  <span className="font-label text-[10px] tracking-wider uppercase">{text}</span>
+                </div>
+              ))}
+              <a href="/privacy" className="flex items-center gap-1 text-primary hover:underline underline-offset-4 transition-colors" target="_blank" rel="noopener noreferrer">
+                <span className="font-label text-[10px] tracking-wider uppercase">Privacy Policy</span>
+                <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+              </a>
+            </div>
+
           </div>
 
           {/* Preferences Section */}

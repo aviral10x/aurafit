@@ -9,6 +9,7 @@ import {
   AuthPayload,
   CatalogStatus,
   CostPolicy,
+  exchangeSupabaseSession,
   getCatalogStatus,
   getCostPolicy,
   getStoredAuth,
@@ -21,6 +22,7 @@ import {
   UserSessionSummary,
   verifyOtp,
 } from "@/lib/api";
+import { getSession as getSupabaseSession } from "@/lib/supabase";
 
 const statusStyles: Record<string, string> = {
   queued: "bg-tertiary/15 text-tertiary border-tertiary/30",
@@ -75,27 +77,55 @@ export default function AccountPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    try {
-      const auth = getStoredAuth();
-      if (auth?.user) {
-        setAuthSession(auth);
-        setUser(auth.user);
-        setName(auth.user.display_name);
-        setEmail(auth.user.email || "");
-        loadSessions(auth.user.id, auth.session_token);
-        return;
-      }
+    let cancelled = false;
 
-      const stored = localStorage.getItem("aurafit:user");
-      if (!stored) return;
-      const storedUser = JSON.parse(stored) as UserIdentity;
-      setUser(storedUser);
-      setName(storedUser.display_name);
-      setEmail(storedUser.email || "");
-      loadSessions(storedUser.id);
-    } catch {
-      // Ignore bad local identity data.
+    async function hydrateAccount() {
+      try {
+        const auth = getStoredAuth();
+        if (auth?.user) {
+          if (cancelled) return;
+          setAuthSession(auth);
+          setUser(auth.user);
+          setName(auth.user.display_name);
+          setEmail(auth.user.email || "");
+          await loadSessions(auth.user.id, auth.session_token);
+          return;
+        }
+
+        const supabaseSession = await getSupabaseSession();
+        if (supabaseSession?.access_token) {
+          try {
+            const bridgedAuth = await exchangeSupabaseSession(supabaseSession.access_token);
+            if (cancelled) return;
+            storeAuth(bridgedAuth);
+            setAuthSession(bridgedAuth);
+            setUser(bridgedAuth.user);
+            setName(bridgedAuth.user.display_name);
+            setEmail(bridgedAuth.user.email || "");
+            await loadSessions(bridgedAuth.user.id, bridgedAuth.session_token);
+            return;
+          } catch {
+            // Fall through to any existing AuraFit identity; the OTP form can repair auth.
+          }
+        }
+
+        const stored = localStorage.getItem("aurafit:user");
+        if (!stored) return;
+        const storedUser = JSON.parse(stored) as UserIdentity;
+        if (cancelled) return;
+        setUser(storedUser);
+        setName(storedUser.display_name);
+        setEmail(storedUser.email || "");
+        await loadSessions(storedUser.id);
+      } catch {
+        // Ignore bad local identity data and let the user sign in with OTP.
+      }
     }
+
+    hydrateAccount();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -186,7 +216,7 @@ export default function AccountPage() {
           <span className="font-label text-xs uppercase tracking-widest text-primary mb-3 block">Personal ID</span>
           <h1 className="font-headline text-5xl md:text-6xl mb-4">Your Saved Profiles</h1>
           <p className="font-body text-on-surface-variant max-w-2xl">
-            Sign in with a 6-digit email OTP to recover saved analyses from Instagram, mobile, or desktop.
+            Sign in with email OTP to recover saved analyses from Instagram, mobile, or desktop. If you already have a Supabase/Gmail browser session, we sync it into your AuraFit ID automatically.
           </p>
         </header>
 
@@ -341,7 +371,9 @@ export default function AccountPage() {
           )}
           {!loading && user && sessions.length === 0 && (
             <div className="bg-surface-container-low rounded-xl p-8">
-              <p className="font-body text-on-surface-variant mb-5">No saved profiles yet.</p>
+              <p className="font-body text-on-surface-variant mb-5">
+                No saved profiles yet. If you have an existing result link, open it once and save it to this email ID.
+              </p>
               <Link href="/upload" className="bg-primary text-on-primary px-6 py-3 rounded-lg font-label uppercase tracking-widest text-xs">
                 Create Analysis
               </Link>
