@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     supabase_storage_signed_url_ttl_seconds: int = 3600
     cors_origins: str = "http://localhost:3000"
     database_url: str = "postgresql+asyncpg://aurafit:aurafit@localhost:5432/aurafit"
+    database_auto_migrate: bool = True
     upload_dir: str = DEFAULT_UPLOAD_DIR
     ops_admin_token: str = ""
 

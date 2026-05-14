@@ -79,6 +79,7 @@ def _check_health(api_base: str, timeout: int) -> CheckResult:
     _require(status == 200, f"/health returned HTTP {status}: {data.get('detail') or data}")
     _require(data.get("status") == "ok", f"/health status is not ok: {data.get('status')}")
     _require(data.get("mock_mode") is False, "MOCK_MODE must be false in production")
+    _require(data.get("database_auto_migrate") is False, "DATABASE_AUTO_MIGRATE must be false in production")
     _require(data.get("database_available") is True, f"Database unavailable: {data.get('database_error')}")
 
     storage = data.get("storage") or {}

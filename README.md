@@ -234,6 +234,8 @@ The command must pass before calling a deployment production-ready. If it fails 
 
 Protected ops metrics are available at `/api/ops/status` only when `OPS_ADMIN_TOKEN` is configured. Without that token the endpoint returns `404`, and with the wrong token it returns `401`.
 
+For Vercel/serverless production, keep `DATABASE_AUTO_MIGRATE=false`. Startup should only verify connectivity; schema changes should be run deliberately before deploys, not from concurrent cold starts.
+
 ## Marketplace Product Matching
 
 AuraFit now separates style guidance from buyable product matching:

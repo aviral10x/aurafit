@@ -892,6 +892,7 @@ async def health():
     return {
         "status": "ok",
         "mock_mode": settings.mock_mode,
+        "database_auto_migrate": settings.database_auto_migrate,
         "database_available": is_db_available(),
         "database_error": get_db_error(),
         "cost_tracking_enabled": settings.cost_tracking_enabled,
@@ -1016,6 +1017,7 @@ async def ops_status(
         "generated_at": now.isoformat(),
         "health": {
             "mock_mode": settings.mock_mode,
+            "database_auto_migrate": settings.database_auto_migrate,
             "database_available": is_db_available(),
             "database_error": get_db_error(),
             "storage_provider": "supabase" if supabase_storage_configured() else "local",
