@@ -11,6 +11,7 @@ from app.models.db import Base
 
 _db_available = False
 _db_error: str | None = None
+_MIGRATION_LOCK_KEY = 8842461107251125
 
 _is_supabase_pooler = "pooler.supabase.com" in settings.database_url
 _connect_args = {}
@@ -45,6 +46,7 @@ async def init_db():
         return
     try:
         async with engine.begin() as conn:
+            await conn.execute(text(f"SELECT pg_advisory_xact_lock({_MIGRATION_LOCK_KEY})"))
             await conn.run_sync(Base.metadata.create_all)
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE"))
             await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id UUID"))
