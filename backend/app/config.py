@@ -80,6 +80,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     database_url: str = "postgresql+asyncpg://aurafit:aurafit@localhost:5432/aurafit"
     upload_dir: str = DEFAULT_UPLOAD_DIR
+    ops_admin_token: str = ""
 
     @field_validator("*", mode="before")
     @classmethod

@@ -203,6 +203,37 @@ The MVP avoids accidental credit burn from Instagram traffic:
 
 Use `/cost-policy` to inspect the active guardrails from the backend.
 
+## Production Smoke Tests
+
+Run the smoke suite after every env change, deploy, or database migration. It checks the live production health/config, verifies that saved profiles are auth-gated, and can optionally verify that a real logged-in user can see and fetch saved profiles. It does not run AI analysis or image generation.
+
+```bash
+make prod-smoke
+```
+
+For a full account/profile check, copy the AuraFit `session_token` from a logged-in browser session and run:
+
+```bash
+AURAFIT_SESSION_TOKEN="..." AURAFIT_EXPECT_PROFILE_NAME="Aviral" make prod-smoke-auth
+```
+
+Optional checks:
+
+```bash
+# Verifies protected production ops metrics.
+AURAFIT_OPS_TOKEN="..." make prod-smoke-ops
+
+# Sends one real OTP email and verifies production does not leak dev OTPs.
+AURAFIT_SMOKE_EMAIL="you@example.com" make prod-smoke
+
+# Test a preview/staging URL instead of production.
+AURAFIT_BASE_URL="https://your-preview.vercel.app" make prod-smoke
+```
+
+The command must pass before calling a deployment production-ready. If it fails on `database_available`, fix `DATABASE_URL` before testing UI flows.
+
+Protected ops metrics are available at `/api/ops/status` only when `OPS_ADMIN_TOKEN` is configured. Without that token the endpoint returns `404`, and with the wrong token it returns `401`.
+
 ## Marketplace Product Matching
 
 AuraFit now separates style guidance from buyable product matching:

@@ -149,6 +149,14 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     return token.strip()
 
 
+def _authorize_ops(authorization: str | None, x_ops_token: str | None) -> None:
+    if not is_secret_configured(settings.ops_admin_token):
+        raise HTTPException(status_code=404, detail="Not found")
+    token = _extract_bearer_token(authorization) or (x_ops_token or "").strip()
+    if not secrets.compare_digest(token, settings.ops_admin_token):
+        raise HTTPException(status_code=401, detail="Invalid ops token")
+
+
 def _user_payload(user: UserModel) -> UserProfile:
     return UserProfile(
         id=str(user.id),
@@ -909,6 +917,139 @@ async def health():
             "max_daily_ai_cost_per_user_usd": settings.max_daily_ai_cost_per_user_usd,
         },
         "rule_categories": rule_engine.get_all_categories(),
+    }
+
+
+@router.get("/ops/status")
+async def ops_status(
+    authorization: str | None = Header(None),
+    x_ops_token: str | None = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    _authorize_ops(authorization, x_ops_token)
+    if db is None or not is_db_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Persistent database is unavailable. Fix DATABASE_URL before reading ops status.",
+        )
+    now = datetime.now(timezone.utc)
+    today_start = _today_start()
+
+    async def count_rows(model, *conditions) -> int:
+        query = select(func.count()).select_from(model)
+        if conditions:
+            query = query.where(*conditions)
+        result = await db.execute(query)
+        return int(result.scalar_one() or 0)
+
+    total_ai_cost_result = await db.execute(
+        select(
+            func.coalesce(
+                func.sum(
+                    func.coalesce(
+                        AIUsageLedgerModel.actual_cost_usd,
+                        AIUsageLedgerModel.estimated_cost_usd,
+                    )
+                ),
+                0,
+            )
+        ).select_from(AIUsageLedgerModel)
+    )
+    today_ai_cost_result = await db.execute(
+        select(
+            func.coalesce(
+                func.sum(
+                    func.coalesce(
+                        AIUsageLedgerModel.actual_cost_usd,
+                        AIUsageLedgerModel.estimated_cost_usd,
+                    )
+                ),
+                0,
+            )
+        )
+        .select_from(AIUsageLedgerModel)
+        .where(AIUsageLedgerModel.created_at >= today_start)
+    )
+
+    job_status_result = await db.execute(
+        select(AnalysisJobModel.status, func.count())
+        .select_from(AnalysisJobModel)
+        .group_by(AnalysisJobModel.status)
+    )
+    session_status_result = await db.execute(
+        select(SessionModel.status, func.count())
+        .select_from(SessionModel)
+        .group_by(SessionModel.status)
+    )
+    failed_jobs_result = await db.execute(
+        select(AnalysisJobModel)
+        .where(AnalysisJobModel.status == "failed")
+        .order_by(AnalysisJobModel.updated_at.desc())
+        .limit(10)
+    )
+    recent_sessions_result = await db.execute(
+        select(SessionModel)
+        .order_by(SessionModel.created_at.desc())
+        .limit(10)
+    )
+
+    active_session_cutoff = now
+    counts = {
+        "users": await count_rows(UserModel),
+        "auth_sessions_active": await count_rows(
+            AuthSessionModel,
+            AuthSessionModel.revoked_at.is_(None),
+            AuthSessionModel.expires_at > active_session_cutoff,
+        ),
+        "otp_requests_today": await count_rows(AuthOtpModel, AuthOtpModel.created_at >= today_start),
+        "sessions_total": await count_rows(SessionModel),
+        "sessions_saved": await count_rows(SessionModel, SessionModel.user_id.is_not(None)),
+        "analysis_results": await count_rows(AnalysisResultModel),
+        "photos": await count_rows(PhotoModel),
+        "queued_jobs": await count_rows(AnalysisJobModel, AnalysisJobModel.status == "queued"),
+        "processing_jobs": await count_rows(AnalysisJobModel, AnalysisJobModel.status == "processing"),
+        "failed_jobs": await count_rows(AnalysisJobModel, AnalysisJobModel.status == "failed"),
+    }
+
+    return {
+        "status": "ok",
+        "generated_at": now.isoformat(),
+        "health": {
+            "mock_mode": settings.mock_mode,
+            "database_available": is_db_available(),
+            "database_error": get_db_error(),
+            "storage_provider": "supabase" if supabase_storage_configured() else "local",
+            "email_configured": email_delivery_configured(),
+            "openrouter_configured": is_secret_configured(settings.openrouter_api_key),
+        },
+        "counts": counts,
+        "jobs_by_status": {status: int(count) for status, count in job_status_result.all()},
+        "sessions_by_status": {status: int(count) for status, count in session_status_result.all()},
+        "ai_cost": {
+            "today_usd": float(today_ai_cost_result.scalar_one() or 0),
+            "total_usd": float(total_ai_cost_result.scalar_one() or 0),
+        },
+        "recent_failed_jobs": [
+            {
+                "job_id": str(job.job_id),
+                "session_id": str(job.session_id),
+                "attempts": job.attempts,
+                "max_attempts": job.max_attempts,
+                "error_message": job.error_message,
+                "updated_at": job.updated_at.isoformat() if job.updated_at else None,
+            }
+            for job in failed_jobs_result.scalars().all()
+        ],
+        "recent_sessions": [
+            {
+                "job_id": str(session.id),
+                "profile_name": session.profile_name,
+                "status": session.status,
+                "user_id": str(session.user_id) if session.user_id else None,
+                "created_at": session.created_at.isoformat() if session.created_at else None,
+            }
+            for session in recent_sessions_result.scalars().all()
+        ],
     }
 
 
