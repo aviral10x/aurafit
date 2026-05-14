@@ -895,6 +895,7 @@ async def health():
         "database_auto_migrate": settings.database_auto_migrate,
         "database_available": is_db_available(),
         "database_error": get_db_error(),
+        "analysis_worker_enabled": settings.analysis_worker_enabled,
         "cost_tracking_enabled": settings.cost_tracking_enabled,
         "ai_providers": {
             "openrouter": is_secret_configured(settings.openrouter_api_key),
@@ -1020,6 +1021,7 @@ async def ops_status(
             "database_auto_migrate": settings.database_auto_migrate,
             "database_available": is_db_available(),
             "database_error": get_db_error(),
+            "analysis_worker_enabled": settings.analysis_worker_enabled,
             "storage_provider": "supabase" if supabase_storage_configured() else "local",
             "email_configured": email_delivery_configured(),
             "openrouter_configured": is_secret_configured(settings.openrouter_api_key),
