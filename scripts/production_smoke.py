@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 from dataclasses import dataclass
@@ -12,7 +13,7 @@ from urllib import error, request
 
 
 DEFAULT_BASE_URL = "https://aurafit.fun"
-DEFAULT_TIMEOUT_SECONDS = 20
+DEFAULT_TIMEOUT_SECONDS = 45
 
 
 @dataclass
@@ -61,8 +62,11 @@ def _json_request(
         except json.JSONDecodeError:
             data = {"detail": raw}
         return exc.code, data
+    except (TimeoutError, socket.timeout) as exc:
+        raise SmokeFailure(f"Timed out after {timeout}s while calling {url}") from exc
     except error.URLError as exc:
-        raise SmokeFailure(f"Could not reach {url}: {exc.reason}") from exc
+        reason = getattr(exc, "reason", exc)
+        raise SmokeFailure(f"Could not reach {url}: {reason}") from exc
 
 
 def _require(condition: bool, message: str) -> None:
